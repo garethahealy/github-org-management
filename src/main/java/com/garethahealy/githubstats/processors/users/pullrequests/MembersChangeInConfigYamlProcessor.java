@@ -98,6 +98,12 @@ public class MembersChangeInConfigYamlProcessor implements Processor {
     @Override
     public void process(GHPullRequest current, Map<String, Set<String>> data, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean isDryRun, boolean failNoVpn) throws TemplateException, LdapException {
         try {
+            if (!ldapSearchService.canConnect()) {
+                if (failNoVpn) {
+                    throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+                }
+            }
+
             List<String> unknownSourceMembers = collectMembersToCheck(current, current.getHead().getRepository(), current.getHead().getCommit().getSHA1(), data.get(Processor.CONFIG_MEMBERS), ldapMembers, supplementaryMembers);
             List<OrgMember> searchedForMembers = searchViaLdapFor(unknownSourceMembers, failNoVpn);
 
@@ -142,18 +148,12 @@ public class MembersChangeInConfigYamlProcessor implements Processor {
         List<OrgMember> answer = new ArrayList<>();
 
         if (!unknownSourceMembers.isEmpty()) {
-            if (ldapSearchService.canConnect()) {
-                try (LdapConnection connection = ldapSearchService.open()) {
-                    for (String current : unknownSourceMembers) {
-                        String rhEmail = ldapSearchService.searchOnGitHubSocial(connection, current);
-                        if (rhEmail.isEmpty()) {
-                            answer.add(OrgMember.from(current));
-                        }
+            try (LdapConnection connection = ldapSearchService.open()) {
+                for (String current : unknownSourceMembers) {
+                    String rhEmail = ldapSearchService.searchOnGitHubSocial(connection, current);
+                    if (rhEmail.isEmpty()) {
+                        answer.add(OrgMember.from(current));
                     }
-                }
-            } else {
-                if (failNoVpn) {
-                    throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
                 }
             }
         }

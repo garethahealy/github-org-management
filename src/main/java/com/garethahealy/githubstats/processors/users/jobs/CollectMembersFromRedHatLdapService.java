@@ -46,15 +46,21 @@ public class CollectMembersFromRedHatLdapService {
     }
 
     public void run(String organization, File ldapMembersCsv, File supplementaryCsv, boolean validateCsv, int limit, boolean failNoVpn) throws IOException, LdapException, TemplateException, ExecutionException, InterruptedException, URISyntaxException {
+        if (!ldapSearchService.canConnect()) {
+            if (failNoVpn) {
+                throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+            }
+        }
+
         OrgMemberRepository ldapMembers = orgMemberCsvService.parse(ldapMembersCsv);
         OrgMemberRepository supplementaryMembers = orgMemberCsvService.parse(supplementaryCsv);
 
         GHOrganization org = gitHubOrganizationLookupService.getOrganization(organization);
 
-        run(org, ldapMembers, supplementaryMembers, validateCsv, limit, failNoVpn);
+        run(org, ldapMembers, supplementaryMembers, validateCsv, limit);
     }
 
-    public void run(GHOrganization org, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean validateCsv, int limit, boolean failNoVpn) throws IOException, LdapException, TemplateException, ExecutionException, InterruptedException, URISyntaxException {
+    public void run(GHOrganization org, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean validateCsv, int limit) throws IOException, LdapException, TemplateException, ExecutionException, InterruptedException, URISyntaxException {
         logger.infof("Looking up %s", org.getLogin());
 
         List<GHUser> githubMembers = gitHubOrganizationLookupService.listMembers(org);
@@ -66,14 +72,14 @@ public class CollectMembersFromRedHatLdapService {
         removeFromIfNotGitHubMember(githubMembers, supplementaryMembers);
 
         if (validateCsv) {
-            searchViaLdapForLdapCsvMembers(ldapMembers, supplementaryMembers, failNoVpn);
-            searchViaLdapForSupplementaryCsvMembers(ldapMembers, supplementaryMembers, failNoVpn);
+            searchViaLdapForLdapCsvMembers(ldapMembers, supplementaryMembers);
+            searchViaLdapForSupplementaryCsvMembers(ldapMembers, supplementaryMembers);
 
             validateOrgMembersAccounts(ldapMembers);
             validateOrgMembersAccounts(supplementaryMembers);
         }
 
-        searchViaLdapForUnknownMembers(githubMembers, ldapMembers, supplementaryMembers, limit, failNoVpn);
+        searchViaLdapForUnknownMembers(githubMembers, ldapMembers, supplementaryMembers, limit);
 
         removeLdapFromSupplementary(ldapMembers, supplementaryMembers);
 
@@ -106,48 +112,41 @@ public class CollectMembersFromRedHatLdapService {
      *
      * @param ldapMembers
      * @param supplementaryMembers
-     * @param failNoVpn
      * @throws IOException
      * @throws LdapException
      */
-    private void searchViaLdapForLdapCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean failNoVpn) throws IOException, LdapException {
-        if (ldapSearchService.canConnect()) {
-            try (LdapConnection connection = ldapSearchService.open()) {
-                LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
+    private void searchViaLdapForLdapCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, LdapException {
+        try (LdapConnection connection = ldapSearchService.open()) {
+            LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
 
-                List<OrgMember> replace = new ArrayList<>();
-                List<OrgMember> filteredMembers = ldapMembers.filter(OrgMemberFilters.deleteAfterIsNull());
+            List<OrgMember> replace = new ArrayList<>();
+            List<OrgMember> filteredMembers = ldapMembers.filter(OrgMemberFilters.deleteAfterIsNull());
 
-                logger.infof("Searching LDAP for %s ldap members from %s", filteredMembers.size(), ldapMembers.name());
+            logger.infof("Searching LDAP for %s ldap members from %s", filteredMembers.size(), ldapMembers.name());
 
-                for (OrgMember current : filteredMembers) {
-                    OrgMember found = ldapSearchService.retrieve(connection, current);
-                    if (found == null) {
-                        logger.warnf("%s cannot be found in LDAP via PrimaryMail and GitHub social for %s CSV", current.gitHubUsername(), ldapMembers.name());
+            for (OrgMember current : filteredMembers) {
+                OrgMember found = ldapSearchService.retrieve(connection, current);
+                if (found == null) {
+                    logger.warnf("%s cannot be found in LDAP via PrimaryMail and GitHub social for %s CSV", current.gitHubUsername(), ldapMembers.name());
 
-                        String email = ldapSearchService.searchOnPrimaryMail(connection, current.redhatEmailAddress());
-                        if (email.isEmpty()) {
-                            replace.add(current.withDeleteAfter(deleteAfter));
-                        } else {
-                            logger.warnf("-> but found %s in LDAP - have they unlinked their GitHub social? moving to %s", current.redhatEmailAddress(), supplementaryMembers.name());
-
-                            ldapMembers.remove(current);
-                            supplementaryMembers.put(current);
-                        }
+                    String email = ldapSearchService.searchOnPrimaryMail(connection, current.redhatEmailAddress());
+                    if (email.isEmpty()) {
+                        replace.add(current.withDeleteAfter(deleteAfter));
                     } else {
-                        if (current != found) {
-                            // Maybe they've added their quay or extra details we didn't get the first time
-                            replace.add(found);
-                        }
+                        logger.warnf("-> but found %s in LDAP - have they unlinked their GitHub social? moving to %s", current.redhatEmailAddress(), supplementaryMembers.name());
+
+                        ldapMembers.remove(current);
+                        supplementaryMembers.put(current);
+                    }
+                } else {
+                    if (current != found) {
+                        // Maybe they've added their quay or extra details we didn't get the first time
+                        replace.add(found);
                     }
                 }
+            }
 
-                ldapMembers.replace(replace);
-            }
-        } else {
-            if (failNoVpn) {
-                throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
-            }
+            ldapMembers.replace(replace);
         }
     }
 
@@ -156,43 +155,36 @@ public class CollectMembersFromRedHatLdapService {
      *
      * @param ldapMembers
      * @param supplementaryMembers
-     * @param failNoVpn
      * @throws IOException
      * @throws LdapException
      * @throws URISyntaxException
      */
-    private void searchViaLdapForSupplementaryCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean failNoVpn) throws IOException, LdapException, URISyntaxException {
-        if (ldapSearchService.canConnect()) {
-            try (LdapConnection connection = ldapSearchService.open()) {
-                LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
+    private void searchViaLdapForSupplementaryCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, LdapException, URISyntaxException {
+        try (LdapConnection connection = ldapSearchService.open()) {
+            LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
 
-                List<OrgMember> replace = new ArrayList<>();
-                List<OrgMember> filteredMembers = supplementaryMembers.filter(OrgMemberFilters.deleteAfterIsNullAndMemberNotBot());
+            List<OrgMember> replace = new ArrayList<>();
+            List<OrgMember> filteredMembers = supplementaryMembers.filter(OrgMemberFilters.deleteAfterIsNullAndMemberNotBot());
 
-                logger.infof("Searching LDAP for %s supplementary members from %s", filteredMembers.size(), supplementaryMembers.name());
+            logger.infof("Searching LDAP for %s supplementary members from %s", filteredMembers.size(), supplementaryMembers.name());
 
-                for (OrgMember current : filteredMembers) {
-                    String primaryMail = ldapSearchService.searchOnPrimaryMail(connection, current.redhatEmailAddress());
-                    if (primaryMail.isEmpty()) {
-                        logger.warnf("%s cannot be found in LDAP via PrimaryMail for %s CSV", current.gitHubUsername(), supplementaryMembers.name());
+            for (OrgMember current : filteredMembers) {
+                String primaryMail = ldapSearchService.searchOnPrimaryMail(connection, current.redhatEmailAddress());
+                if (primaryMail.isEmpty()) {
+                    logger.warnf("%s cannot be found in LDAP via PrimaryMail for %s CSV", current.gitHubUsername(), supplementaryMembers.name());
 
-                        replace.add(current.withDeleteAfter(deleteAfter));
-                    } else {
-                        OrgMember found = ldapSearchService.retrieve(connection, current);
-                        if (found != null) {
-                            logger.infof("%s has linked their account, adding to %s CSV", current.gitHubUsername(), ldapMembers.name());
+                    replace.add(current.withDeleteAfter(deleteAfter));
+                } else {
+                    OrgMember found = ldapSearchService.retrieve(connection, current);
+                    if (found != null) {
+                        logger.infof("%s has linked their account, adding to %s CSV", current.gitHubUsername(), ldapMembers.name());
 
-                            ldapMembers.put(found);
-                        }
+                        ldapMembers.put(found);
                     }
                 }
+            }
 
-                supplementaryMembers.replace(replace);
-            }
-        } else {
-            if (failNoVpn) {
-                throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
-            }
+            supplementaryMembers.replace(replace);
         }
     }
 
@@ -207,36 +199,29 @@ public class CollectMembersFromRedHatLdapService {
      * @param ldapMembers
      * @param supplementaryMembers
      * @param limit
-     * @param failNoVpn
      * @throws IOException
      * @throws LdapException
      * @throws URISyntaxException
      */
-    private void searchViaLdapForUnknownMembers(List<GHUser> githubMembers, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, int limit, boolean failNoVpn) throws IOException, LdapException, URISyntaxException {
-        if (ldapSearchService.canConnect()) {
-            try (LdapConnection connection = ldapSearchService.open()) {
-                int limitBy = limit <= 0 ? githubMembers.size() : limit;
-                List<GHUser> unknownUsers = githubMembers.stream().filter(GHUserFilters.notContains(ldapMembers, supplementaryMembers)).limit(limitBy).toList();
+    private void searchViaLdapForUnknownMembers(List<GHUser> githubMembers, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, int limit) throws IOException, LdapException, URISyntaxException {
+        try (LdapConnection connection = ldapSearchService.open()) {
+            int limitBy = limit <= 0 ? githubMembers.size() : limit;
+            List<GHUser> unknownUsers = githubMembers.stream().filter(GHUserFilters.notContains(ldapMembers, supplementaryMembers)).limit(limitBy).toList();
 
-                if (!unknownUsers.isEmpty()) {
-                    logger.infof("Searching LDAP for %s unknown GitHub members", unknownUsers.size());
+            if (!unknownUsers.isEmpty()) {
+                logger.infof("Searching LDAP for %s unknown GitHub members", unknownUsers.size());
 
-                    for (GHUser user : unknownUsers) {
-                        String rhEmail = ldapSearchService.searchOnGitHubSocial(connection, user.getLogin());
-                        if (rhEmail.isEmpty()) {
-                            logger.warnf("%s cannot be found in LDAP via GitHub social", user.getLogin());
-                        } else {
-                            logger.infof("Adding %s to %s CSV", user.getLogin(), ldapMembers.name());
+                for (GHUser user : unknownUsers) {
+                    String rhEmail = ldapSearchService.searchOnGitHubSocial(connection, user.getLogin());
+                    if (rhEmail.isEmpty()) {
+                        logger.warnf("%s cannot be found in LDAP via GitHub social", user.getLogin());
+                    } else {
+                        logger.infof("Adding %s to %s CSV", user.getLogin(), ldapMembers.name());
 
-                            OrgMember orgMember = orgMemberValidationService.validate(ldapSearchService.retrieve(connection, user.getLogin(), rhEmail));
-                            ldapMembers.put(orgMember);
-                        }
+                        OrgMember orgMember = orgMemberValidationService.validate(ldapSearchService.retrieve(connection, user.getLogin(), rhEmail));
+                        ldapMembers.put(orgMember);
                     }
                 }
-            }
-        } else {
-            if (failNoVpn) {
-                throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
             }
         }
     }
