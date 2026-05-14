@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Holds data about members that are part of the GitHub Org and have had their data collected from LDAP
@@ -83,15 +84,26 @@ public record OrgMember(String redhatEmailAddress, String gitHubUsername, List<S
      */
     public static OrgMember from(CSVRecord record) {
         String linkedGithub = record.get(OrgMember.Headers.LinkedGitHubUsernames);
+        List<String> linkedGithubSplit = Stream.of(linkedGithub.split(":"))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toList();
+
         String linkedQuay = record.get(OrgMember.Headers.LinkedQuayUsernames);
+        List<String> linkedQuaySplit = Stream.of(linkedQuay.split(":"))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toList();
+
         String deleteAfter = record.get(Headers.DeleteAfter);
 
         return new OrgMember(record.get(OrgMember.Headers.RedHatEmailAddress),
             record.get(OrgMember.Headers.GitHubUsername),
-            new ArrayList<>(List.of(linkedGithub.split(":"))),
-            new ArrayList<>(List.of(linkedQuay.split(":"))),
+            new ArrayList<>(linkedGithubSplit),
+            new ArrayList<>(linkedQuaySplit),
             Source.valueOf(record.get(OrgMember.Headers.Source)),
-            deleteAfter == null || deleteAfter.isEmpty() ? null : LocalDate.parse(deleteAfter), null);
+            deleteAfter == null || deleteAfter.isEmpty() ? null : LocalDate.parse(deleteAfter),
+            null);
     }
 
     /**
