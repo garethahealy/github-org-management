@@ -53,10 +53,6 @@ public class GitHubOrganizationLookupService {
         return org.getRepositories();
     }
 
-    public List<GHRepository> listRepositories(GHOrganization org) throws IOException {
-        return new ArrayList<>(org.getRepositories().values());
-    }
-
     public GHRepository getRepository(String ownerRepo) throws IOException {
         return client.getRepository(ownerRepo);
     }
