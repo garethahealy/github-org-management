@@ -9,6 +9,6 @@ import picocli.CommandLine;
     name = "github-stats",
     description = "GitHub helper utility",
     mixinStandardHelpOptions = true,
-    subcommands = {StatsCommand.class, UsersCommand.class, CommandLine.HelpCommand.class, AutoComplete.GenerateCompletion.class})
+    subcommands = {UsersCommand.class, CommandLine.HelpCommand.class, AutoComplete.GenerateCompletion.class})
 public class GitHubStatsCommand {
 }
