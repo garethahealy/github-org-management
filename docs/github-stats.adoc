@@ -47,9 +47,6 @@ GitHub helper utility
 // tag::picocli-generated-man-section-commands[]
 == Commands
 
-xref:github-stats-stats.adoc[*stats*]::
-  Stats collection
-
 xref:github-stats-users.adoc[*users*]::
   Users operations
 
