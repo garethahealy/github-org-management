@@ -61,6 +61,13 @@ public class CreateWhoAreYouIssueService {
     }
 
     public void run(String organization, String issueRepo, File membersCsv, File supplementaryCsv, GHPermissionType perms, int limit, boolean isDryRun, boolean failNoVpn) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
+        //TODO
+        //if (!ldapSearchService.canConnect()) {
+        //    if (failNoVpn) {
+        //        throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+        //    }
+        //}
+
         OrgMemberRepository ldapMembers = orgMemberCsvService.parse(membersCsv);
         OrgMemberRepository supplementaryMembers = orgMemberCsvService.parse(supplementaryCsv);
 

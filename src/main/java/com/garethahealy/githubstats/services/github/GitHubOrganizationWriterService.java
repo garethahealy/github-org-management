@@ -36,9 +36,16 @@ public class GitHubOrganizationWriterService {
     }
 
     public GHRepository getRepository(GHOrganization org, String repo) throws IOException {
-        return org.getRepository(repo);
+        return client.getRepository(org.getLogin() + "/" + repo);
     }
 
+    /**
+     * todo: remove
+     * @param owner
+     * @param repo
+     * @return
+     * @throws IOException
+     */
     public GHRepository getRepository(String owner, String repo) throws IOException {
         return client.getRepository(owner + "/" + repo);
     }
