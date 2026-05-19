@@ -27,11 +27,11 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * Check the GitHub members are in the CSVs, collected via `CollectMembersFromRedHatLdapService`
+ * Check the GitHub members are in the CSVs, collected via `CollectMembersFromRedHatLdapProcessor`
  * If not, raise an issue
  */
 @ApplicationScoped
-public class CreateWhoAreYouIssueService {
+public class CreateWhoAreYouIssueProcessor {
 
     private final Logger logger;
     private final GitHubOrganizationLookupService gitHubOrganizationLookupService;
@@ -52,7 +52,7 @@ public class CreateWhoAreYouIssueService {
     }
 
     @Inject
-    public CreateWhoAreYouIssueService(Logger logger, GitHubOrganizationLookupService gitHubOrganizationLookupService, GitHubOrganizationWriterService gitHubOrganizationWriterService, OrgMemberCsvService orgMemberCsvService, DefaultLdapGuessService ldapGuessService) {
+    public CreateWhoAreYouIssueProcessor(Logger logger, GitHubOrganizationLookupService gitHubOrganizationLookupService, GitHubOrganizationWriterService gitHubOrganizationWriterService, OrgMemberCsvService orgMemberCsvService, DefaultLdapGuessService ldapGuessService) {
         this.logger = logger;
         this.gitHubOrganizationLookupService = gitHubOrganizationLookupService;
         this.gitHubOrganizationWriterService = gitHubOrganizationWriterService;

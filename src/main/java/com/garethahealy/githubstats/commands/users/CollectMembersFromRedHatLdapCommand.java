@@ -1,6 +1,6 @@
 package com.garethahealy.githubstats.commands.users;
 
-import com.garethahealy.githubstats.processors.users.jobs.CollectMembersFromRedHatLdapService;
+import com.garethahealy.githubstats.processors.users.jobs.CollectMembersFromRedHatLdapProcessor;
 import freemarker.template.TemplateException;
 import jakarta.inject.Inject;
 import org.apache.directory.api.ldap.model.exception.LdapException;
@@ -34,7 +34,7 @@ public class CollectMembersFromRedHatLdapCommand implements Runnable {
     boolean failNoVpn;
 
     @Inject
-    CollectMembersFromRedHatLdapService collectMembersFromRedHatLdapService;
+    CollectMembersFromRedHatLdapProcessor collectMembersFromRedHatLdapProcessor;
 
     @Override
     public void run() {
@@ -49,7 +49,7 @@ public class CollectMembersFromRedHatLdapCommand implements Runnable {
                 Files.createFile(supplementaryPath);
             }
 
-            collectMembersFromRedHatLdapService.run(organization, ldapMembersPath.toFile(), supplementaryPath.toFile(), validateCsv, limit, failNoVpn);
+            collectMembersFromRedHatLdapProcessor.run(organization, ldapMembersPath.toFile(), supplementaryPath.toFile(), validateCsv, limit, failNoVpn);
         } catch (IOException | LdapException | TemplateException |
                     ExecutionException | InterruptedException | URISyntaxException e) {
             throw new RuntimeException(e);

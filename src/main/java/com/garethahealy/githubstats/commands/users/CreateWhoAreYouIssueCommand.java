@@ -1,6 +1,6 @@
 package com.garethahealy.githubstats.commands.users;
 
-import com.garethahealy.githubstats.processors.users.jobs.CreateWhoAreYouIssueService;
+import com.garethahealy.githubstats.processors.users.jobs.CreateWhoAreYouIssueProcessor;
 import com.garethahealy.githubstats.services.ldap.NoopLdapGuessService;
 import freemarker.template.TemplateException;
 import jakarta.inject.Inject;
@@ -45,7 +45,7 @@ public class CreateWhoAreYouIssueCommand implements Runnable {
     boolean failNoVpn;
 
     @Inject
-    CreateWhoAreYouIssueService createWhoAreYouIssueService;
+    CreateWhoAreYouIssueProcessor createWhoAreYouIssueProcessor;
 
     @Inject
     NoopLdapGuessService noopLdapGuessService;
@@ -68,10 +68,10 @@ public class CreateWhoAreYouIssueCommand implements Runnable {
             }
 
             if (!shouldGuess) {
-                createWhoAreYouIssueService.setLdapGuessService(noopLdapGuessService);
+                createWhoAreYouIssueProcessor.setLdapGuessService(noopLdapGuessService);
             }
 
-            createWhoAreYouIssueService.run(organization, orgRepo, ldapMembersPath.toFile(), supplementaryPath.toFile(), convert(permission), limit, dryRun, failNoVpn);
+            createWhoAreYouIssueProcessor.run(organization, orgRepo, ldapMembersPath.toFile(), supplementaryPath.toFile(), convert(permission), limit, dryRun, failNoVpn);
         } catch (IOException | TemplateException | ExecutionException | InterruptedException | LdapException e) {
             throw new RuntimeException(e);
         }

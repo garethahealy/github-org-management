@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutionException;
  * Search and collect the GitHub members from the Red Hat LDAP.
  */
 @ApplicationScoped
-public class CollectMembersFromRedHatLdapService {
+public class CollectMembersFromRedHatLdapProcessor {
 
     private final Logger logger;
     private final GitHubOrganizationLookupService gitHubOrganizationLookupService;
@@ -37,7 +37,7 @@ public class CollectMembersFromRedHatLdapService {
     private final OrgMemberCsvService orgMemberCsvService;
     private final OrgMemberValidationService orgMemberValidationService;
 
-    public CollectMembersFromRedHatLdapService(Logger logger, GitHubOrganizationLookupService gitHubOrganizationLookupService, OrgMemberCsvService orgMemberCsvService, LdapSearchService ldapSearchService, OrgMemberValidationService orgMemberValidationService) {
+    public CollectMembersFromRedHatLdapProcessor(Logger logger, GitHubOrganizationLookupService gitHubOrganizationLookupService, OrgMemberCsvService orgMemberCsvService, LdapSearchService ldapSearchService, OrgMemberValidationService orgMemberValidationService) {
         this.logger = logger;
         this.gitHubOrganizationLookupService = gitHubOrganizationLookupService;
         this.orgMemberCsvService = orgMemberCsvService;
