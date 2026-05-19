@@ -22,46 +22,43 @@ public class DefaultLdapGuessService implements LdapGuessService {
         this.ldapSearchService = ldapSearchService;
     }
 
+    public boolean canConnect() throws IOException {
+        return ldapSearchService.canConnect();
+    }
+
     /**
      * Attempt to guess the 'userToGuess' using several rules
      *
      * @param userToGuess
-     * @param failNoVpn
      * @return
      * @throws IOException
      * @throws LdapException
      */
-    public OrgMember attempt(OrgMember userToGuess, boolean failNoVpn) throws IOException, LdapException {
+    public OrgMember attempt(OrgMember userToGuess) throws IOException, LdapException {
         OrgMember guessed = null;
 
-        if (ldapSearchService.canConnect()) {
-            try (LdapConnection connection = ldapSearchService.open()) {
-                logger.infof("Attempting to guess %s", userToGuess.gitHubUsername());
+        try (LdapConnection connection = ldapSearchService.open()) {
+            logger.infof("Attempting to guess %s", userToGuess.gitHubUsername());
 
-                OrgMember guess = guessViaGithubLoginLinked(connection, userToGuess);
-                if (guess == null) {
-                    guess = guessViaGithubProfileEmail(connection, userToGuess);
-                }
-
-                if (guess == null) {
-                    guess = guessViaGithubLoginMatchingUID(connection, userToGuess);
-                }
-
-                if (guess == null) {
-                    guess = guessViaGithubProfileName(connection, userToGuess);
-                }
-
-                if (guess == null) {
-                    if (guessWorksForRedHat(userToGuess)) {
-                        guessed = userToGuess;
-                    }
-                } else {
-                    guessed = guess;
-                }
+            OrgMember guess = guessViaGithubLoginLinked(connection, userToGuess);
+            if (guess == null) {
+                guess = guessViaGithubProfileEmail(connection, userToGuess);
             }
-        } else {
-            if (failNoVpn) {
-                throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+
+            if (guess == null) {
+                guess = guessViaGithubLoginMatchingUID(connection, userToGuess);
+            }
+
+            if (guess == null) {
+                guess = guessViaGithubProfileName(connection, userToGuess);
+            }
+
+            if (guess == null) {
+                if (guessWorksForRedHat(userToGuess)) {
+                    guessed = userToGuess;
+                }
+            } else {
+                guessed = guess;
             }
         }
 

@@ -25,6 +25,6 @@ class DefaultLdapGuessServiceTest extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void attempt() throws IOException, LdapException {
-        defaultLdapGuessService.attempt(OrgMemberMockData.getMe(client), true);
+        defaultLdapGuessService.attempt(OrgMemberMockData.getMe(client));
     }
 }

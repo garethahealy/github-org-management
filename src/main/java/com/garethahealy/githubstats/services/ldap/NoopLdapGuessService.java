@@ -10,7 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class NoopLdapGuessService implements LdapGuessService {
 
     @Override
-    public OrgMember attempt(OrgMember userToGuess, boolean failNoVpn) {
+    public OrgMember attempt(OrgMember userToGuess) {
         //NOOP
         return null;
     }

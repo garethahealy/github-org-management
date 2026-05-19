@@ -7,5 +7,5 @@ import java.io.IOException;
 
 public interface LdapGuessService {
 
-    OrgMember attempt(OrgMember userToGuess, boolean failNoVpn) throws IOException, LdapException;
+    OrgMember attempt(OrgMember userToGuess) throws IOException, LdapException;
 }

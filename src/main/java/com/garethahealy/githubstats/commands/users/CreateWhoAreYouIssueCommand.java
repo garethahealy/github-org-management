@@ -1,7 +1,6 @@
 package com.garethahealy.githubstats.commands.users;
 
 import com.garethahealy.githubstats.processors.users.jobs.CreateWhoAreYouIssueProcessor;
-import com.garethahealy.githubstats.services.ldap.NoopLdapGuessService;
 import freemarker.template.TemplateException;
 import jakarta.inject.Inject;
 import org.apache.directory.api.ldap.model.exception.LdapException;
@@ -47,9 +46,6 @@ public class CreateWhoAreYouIssueCommand implements Runnable {
     @Inject
     CreateWhoAreYouIssueProcessor createWhoAreYouIssueProcessor;
 
-    @Inject
-    NoopLdapGuessService noopLdapGuessService;
-
     @Override
     public void run() {
         try {
@@ -67,11 +63,7 @@ public class CreateWhoAreYouIssueCommand implements Runnable {
                 throw new IllegalArgumentException("--dry-run=" + dryRun + " but --issue-repo=" + orgRepo + " - 'issue-repo' cant be empty if 'dry-run' is false");
             }
 
-            if (!shouldGuess) {
-                createWhoAreYouIssueProcessor.setLdapGuessService(noopLdapGuessService);
-            }
-
-            createWhoAreYouIssueProcessor.run(organization, orgRepo, ldapMembersPath.toFile(), supplementaryPath.toFile(), convert(permission), limit, dryRun, failNoVpn);
+            createWhoAreYouIssueProcessor.run(organization, orgRepo, ldapMembersPath.toFile(), supplementaryPath.toFile(), convert(permission), limit, dryRun, shouldGuess, failNoVpn);
         } catch (IOException | TemplateException | ExecutionException | InterruptedException | LdapException e) {
             throw new RuntimeException(e);
         }

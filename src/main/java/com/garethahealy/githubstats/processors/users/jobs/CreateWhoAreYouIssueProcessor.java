@@ -9,6 +9,7 @@ import com.garethahealy.githubstats.services.github.GitHubOrganizationLookupServ
 import com.garethahealy.githubstats.services.github.GitHubOrganizationWriterService;
 import com.garethahealy.githubstats.services.ldap.DefaultLdapGuessService;
 import com.garethahealy.githubstats.services.ldap.LdapGuessService;
+import com.garethahealy.githubstats.services.ldap.NoopLdapGuessService;
 import com.garethahealy.githubstats.services.users.OrgMemberCsvService;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -37,6 +38,8 @@ public class CreateWhoAreYouIssueProcessor {
     private final GitHubOrganizationLookupService gitHubOrganizationLookupService;
     private final GitHubOrganizationWriterService gitHubOrganizationWriterService;
     private final OrgMemberCsvService orgMemberCsvService;
+    private final DefaultLdapGuessService defaultLdapGuessService;
+    private final NoopLdapGuessService noopLdapGuessService;
     private LdapGuessService ldapGuessService;
 
     @Inject
@@ -47,26 +50,24 @@ public class CreateWhoAreYouIssueProcessor {
     @TemplatePath("GitHubMemberNotFoundInLdap.ftl")
     Template gitHubMemberNotFoundInLdap;
 
-    public void setLdapGuessService(LdapGuessService ldapGuessService) {
-        this.ldapGuessService = ldapGuessService;
-    }
-
     @Inject
-    public CreateWhoAreYouIssueProcessor(Logger logger, GitHubOrganizationLookupService gitHubOrganizationLookupService, GitHubOrganizationWriterService gitHubOrganizationWriterService, OrgMemberCsvService orgMemberCsvService, DefaultLdapGuessService ldapGuessService) {
+    public CreateWhoAreYouIssueProcessor(Logger logger, GitHubOrganizationLookupService gitHubOrganizationLookupService, GitHubOrganizationWriterService gitHubOrganizationWriterService, OrgMemberCsvService orgMemberCsvService, DefaultLdapGuessService defaultLdapGuessService, NoopLdapGuessService noopLdapGuessService) {
         this.logger = logger;
         this.gitHubOrganizationLookupService = gitHubOrganizationLookupService;
         this.gitHubOrganizationWriterService = gitHubOrganizationWriterService;
         this.orgMemberCsvService = orgMemberCsvService;
-        this.ldapGuessService = ldapGuessService;
+        this.defaultLdapGuessService = defaultLdapGuessService;
+        this.noopLdapGuessService = noopLdapGuessService;
     }
 
-    public void run(String organization, String issueRepo, File membersCsv, File supplementaryCsv, GHPermissionType perms, int limit, boolean isDryRun, boolean failNoVpn) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
-        //TODO
-        //if (!ldapSearchService.canConnect()) {
-        //    if (failNoVpn) {
-        //        throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
-        //    }
-        //}
+    public void run(String organization, String issueRepo, File membersCsv, File supplementaryCsv, GHPermissionType perms, int limit, boolean isDryRun, boolean shouldGuess, boolean failNoVpn) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
+        if (!defaultLdapGuessService.canConnect()) {
+            if (failNoVpn) {
+                throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+            }
+        }
+
+        ldapGuessService = shouldGuess ? defaultLdapGuessService : noopLdapGuessService;
 
         OrgMemberRepository ldapMembers = orgMemberCsvService.parse(membersCsv);
         OrgMemberRepository supplementaryMembers = orgMemberCsvService.parse(supplementaryCsv);
@@ -74,10 +75,10 @@ public class CreateWhoAreYouIssueProcessor {
         GHOrganization org = gitHubOrganizationLookupService.getOrganization(organization);
         GHRepository orgRepo = gitHubOrganizationLookupService.getRepository(org, issueRepo);
 
-        run(org, orgRepo, ldapMembers, supplementaryMembers, perms, limit, isDryRun, failNoVpn);
+        run(org, orgRepo, ldapMembers, supplementaryMembers, perms, limit, isDryRun);
     }
 
-    public void run(GHOrganization org, GHRepository orgRepo, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms, int limit, boolean isDryRun, boolean failNoVpn) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
+    public void run(GHOrganization org, GHRepository orgRepo, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms, int limit, boolean isDryRun) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
         logger.infof("Looking up %s/%s", orgRepo.getOwner().getLogin(), orgRepo.getName());
 
         List<GHUser> githubMembers = gitHubOrganizationLookupService.listMembers(org);
@@ -85,7 +86,7 @@ public class CreateWhoAreYouIssueProcessor {
         logger.infof("There are %s GitHub members", githubMembers.size());
         logger.infof("There are %s known members and %s supplementary members in the CSVs, total %s", ldapMembers.size(), supplementaryMembers.size(), (ldapMembers.size() + supplementaryMembers.size()));
 
-        List<OrgMember> usersToInform = collectUnknownUsers(org, githubMembers, ldapMembers, supplementaryMembers, perms, limit, failNoVpn);
+        List<OrgMember> usersToInform = collectUnknownUsers(org, githubMembers, ldapMembers, supplementaryMembers, perms, limit);
         createLinkUsersIssue(usersToInform, orgRepo, perms, isDryRun);
 
         List<OrgMember> toBeDeleted = collectedMembersMarkedForDeletion(ldapMembers, supplementaryMembers);
@@ -98,12 +99,12 @@ public class CreateWhoAreYouIssueProcessor {
         orgMemberCsvService.write(supplementaryMembers);
     }
 
-    private List<OrgMember> collectUnknownUsers(GHOrganization org, List<GHUser> githubMembers, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms, int limit, boolean failNoVpn) throws IOException, ExecutionException, InterruptedException, LdapException {
+    private List<OrgMember> collectUnknownUsers(GHOrganization org, List<GHUser> githubMembers, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms, int limit) throws IOException, ExecutionException, InterruptedException, LdapException {
         List<OrgMember> usersToInform;
         if (GHPermissionType.READ == perms) {
-            usersToInform = collectUnknownUsersWithRead(githubMembers, ldapMembers, supplementaryMembers, failNoVpn);
+            usersToInform = collectUnknownUsersWithRead(githubMembers, ldapMembers, supplementaryMembers);
         } else {
-            usersToInform = collectUnknownUsersWithAdminOrWrite(org, ldapMembers, supplementaryMembers, perms, limit, failNoVpn);
+            usersToInform = collectUnknownUsersWithAdminOrWrite(org, ldapMembers, supplementaryMembers, perms, limit);
         }
 
         return usersToInform;
@@ -115,12 +116,11 @@ public class CreateWhoAreYouIssueProcessor {
      * @param members
      * @param ldapMembers
      * @param supplementaryMembers
-     * @param failNoVpn
      * @return
      * @throws IOException
      * @throws LdapException
      */
-    private List<OrgMember> collectUnknownUsersWithRead(List<GHUser> members, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean failNoVpn) throws IOException, LdapException {
+    private List<OrgMember> collectUnknownUsersWithRead(List<GHUser> members, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, LdapException {
         List<OrgMember> usersToInform = new ArrayList<>();
 
         List<GHUser> unknownUsers = members.stream().filter(GHUserFilters.notContains(ldapMembers, supplementaryMembers)).toList();
@@ -128,7 +128,7 @@ public class CreateWhoAreYouIssueProcessor {
             logger.infof("Collecting %s unknown members with %s", unknownUsers.size(), GHPermissionType.READ);
 
             for (GHUser member : unknownUsers) {
-                usersToInform.add(guessWho(OrgMember.from(member), failNoVpn));
+                usersToInform.add(guessWho(OrgMember.from(member)));
             }
         }
 
@@ -142,13 +142,12 @@ public class CreateWhoAreYouIssueProcessor {
      * @param ldapMembers
      * @param supplementaryMembers
      * @param perms
-     * @param failNoVpn
      * @return
      * @throws IOException
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    private List<OrgMember> collectUnknownUsersWithAdminOrWrite(GHOrganization org, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms, int limit, boolean failNoVpn) throws IOException, ExecutionException, InterruptedException, LdapException {
+    private List<OrgMember> collectUnknownUsersWithAdminOrWrite(GHOrganization org, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms, int limit) throws IOException, ExecutionException, InterruptedException, LdapException {
         Map<String, OrgMember> usersToInform = new ConcurrentHashMap<>();
 
         List<Future<Integer>> futures = new ArrayList<>();
@@ -158,7 +157,7 @@ public class CreateWhoAreYouIssueProcessor {
             List<GHTeam> teamsLimited = teams.stream().limit(limitBy).toList();
 
             for (GHTeam team : teamsLimited) {
-                futures.add(executor.submit(() -> runnable(usersToInform, team, ldapMembers, supplementaryMembers, perms, failNoVpn)));
+                futures.add(executor.submit(() -> runnable(usersToInform, team, ldapMembers, supplementaryMembers, perms)));
             }
 
             for (Future<Integer> future : futures) {
@@ -169,7 +168,7 @@ public class CreateWhoAreYouIssueProcessor {
         return new ArrayList<>(usersToInform.values());
     }
 
-    private Integer runnable(Map<String, OrgMember> usersToInform, GHTeam team, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms, boolean failNoVpn) throws LdapException {
+    private Integer runnable(Map<String, OrgMember> usersToInform, GHTeam team, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms) throws LdapException {
         Integer count = 0;
 
         try {
@@ -185,7 +184,7 @@ public class CreateWhoAreYouIssueProcessor {
                             if (repository.hasPermission(member, perms)) {
                                 logger.warnf("Member %s has %s on %s - but we don't know who they are", member.getLogin(), perms, repository.getName());
 
-                                usersToInform.put(member.getLogin(), guessWho(OrgMember.from(member), failNoVpn));
+                                usersToInform.put(member.getLogin(), guessWho(OrgMember.from(member)));
                                 count++;
 
                                 break;
@@ -205,15 +204,14 @@ public class CreateWhoAreYouIssueProcessor {
      * Attempt to guess who someone is via LDAP
      *
      * @param userToGuess
-     * @param failNoVpn
      * @return
      * @throws IOException
      * @throws LdapException
      */
-    private OrgMember guessWho(OrgMember userToGuess, boolean failNoVpn) throws IOException, LdapException {
+    private OrgMember guessWho(OrgMember userToGuess) throws IOException, LdapException {
         OrgMember answer;
 
-        OrgMember guessed = ldapGuessService.attempt(userToGuess, failNoVpn);
+        OrgMember guessed = ldapGuessService.attempt(userToGuess);
         if (guessed == null) {
             logger.infof("Unable to guess %s", userToGuess.gitHubUsername());
             answer = userToGuess;
