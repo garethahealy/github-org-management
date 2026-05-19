@@ -1,5 +1,6 @@
 package com.garethahealy.githubstats.config;
 
+import io.quarkus.runtime.Startup;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
@@ -9,6 +10,7 @@ import org.kohsuke.github.GitHubBuilder;
 
 import java.io.IOException;
 
+@Startup
 @Singleton
 public class GitHubClientConfig {
 
@@ -16,10 +18,10 @@ public class GitHubClientConfig {
     private final String githubOauth;
     private final String githubWriteOauth;
 
-    public GitHubClientConfig(@ConfigProperty(name = "github.login") String githubLogin, @ConfigProperty(name = "github.oauth") String githubOauth, @ConfigProperty(name = "github.write-oauth") String githubWriteOauth) {
-        this.githubLogin = githubLogin;
-        this.githubOauth = githubOauth;
-        this.githubWriteOauth = githubWriteOauth;
+    public GitHubClientConfig(GitHubConfigProperties config) {
+        this.githubLogin = config.login();
+        this.githubOauth = config.oauth();
+        this.githubWriteOauth = config.writeOauth();
     }
 
     @Singleton

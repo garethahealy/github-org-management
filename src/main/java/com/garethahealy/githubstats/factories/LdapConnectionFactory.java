@@ -1,5 +1,6 @@
 package com.garethahealy.githubstats.factories;
 
+import com.garethahealy.githubstats.config.LdapConfigProperties;
 import com.garethahealy.githubstats.services.ldap.LdapSearchService;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -33,12 +34,11 @@ public class LdapConnectionFactory {
     private Dn systemDn;
 
     @Inject
-    public LdapConnectionFactory(Logger logger, @ConfigProperty(name = "redhat.ldap.connection") String ldapConnection,
-            @ConfigProperty(name = "redhat.ldap.dn") String ldapDn, @ConfigProperty(name = "redhat.ldap.warmup-user") String ldapWarmupUser) {
+    public LdapConnectionFactory(Logger logger, LdapConfigProperties config) {
         this.logger = logger;
-        this.ldapConnection = ldapConnection;
-        this.ldapDn = ldapDn;
-        this.ldapWarmupUser = ldapWarmupUser;
+        this.ldapConnection = config.connection();
+        this.ldapDn = config.dn();
+        this.ldapWarmupUser = config.warmupUser();
     }
 
     @PostConstruct
