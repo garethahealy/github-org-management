@@ -54,7 +54,8 @@ public class CreateWhoAreYouIssueCommand implements Runnable {
     public void run() {
         try {
             if (!ldapConnectionFactory.canConnect()) {
-                if (failNoVpn) {
+                // Guessing is the only requirement for VPN
+                if (shouldGuess && failNoVpn) {
                     throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
                 }
             }

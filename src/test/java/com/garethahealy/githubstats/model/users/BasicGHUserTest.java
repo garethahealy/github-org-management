@@ -21,7 +21,7 @@ class BasicGHUserTest {
     @Test
     void from() throws IOException {
         GHOrganization org = gitHubOrganizationLookupService.getOrganization("redhat-cop");
-        List<GHUser> users = gitHubOrganizationLookupService.listMembers(org);
+        List<GHUser> users = gitHubOrganizationLookupService.getMembers(org);
         GHUser me = users.stream().filter(user -> user.getLogin().equalsIgnoreCase("garethahealy")).findFirst().get();
 
         BasicGHUser answer = BasicGHUser.from(me);

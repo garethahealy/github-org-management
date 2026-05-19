@@ -47,17 +47,9 @@ class GitHubOrganizationLookupServiceTest {
     }
 
     @Test
-    void getRepository() throws IOException {
-        GHRepository repo = gitHubOrganizationLookupService.getRepository("garethahealy", "github-stats");
-
-        assertNotNull(repo);
-        assertEquals("github-stats", repo.getName());
-    }
-
-    @Test
-    void listMembers() throws IOException {
+    void getMembers() throws IOException {
         GHOrganization org = gitHubOrganizationLookupService.getOrganization("redhat-cop");
-        List<GHUser> members = gitHubOrganizationLookupService.listMembers(org);
+        List<GHUser> members = gitHubOrganizationLookupService.getMembers(org);
 
         assertNotNull(org);
         assertNotNull(members);

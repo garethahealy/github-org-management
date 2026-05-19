@@ -61,6 +61,8 @@ public class CreateWhoAreYouIssueProcessor {
     }
 
     public void run(String organization, String issueRepo, File membersCsv, File supplementaryCsv, GHPermissionType perms, int limit, boolean isDryRun, boolean shouldGuess) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
+        logger.infof("Looking up %s/%s", organization, issueRepo);
+
         ldapGuessService = shouldGuess ? defaultLdapGuessService : noopLdapGuessService;
 
         OrgMemberRepository ldapMembers = orgMemberCsvService.parse(membersCsv);
@@ -72,10 +74,8 @@ public class CreateWhoAreYouIssueProcessor {
         run(org, orgRepo, ldapMembers, supplementaryMembers, perms, limit, isDryRun);
     }
 
-    public void run(GHOrganization org, GHRepository orgRepo, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms, int limit, boolean isDryRun) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
-        logger.infof("Looking up %s/%s", orgRepo.getOwner().getLogin(), orgRepo.getName());
-
-        List<GHUser> githubMembers = gitHubOrganizationLookupService.listMembers(org);
+    private void run(GHOrganization org, GHRepository orgRepo, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, GHPermissionType perms, int limit, boolean isDryRun) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
+        List<GHUser> githubMembers = gitHubOrganizationLookupService.getMembers(org);
 
         logger.infof("There are %s GitHub members", githubMembers.size());
         logger.infof("There are %s known members and %s supplementary members in the CSVs, total %s", ldapMembers.size(), supplementaryMembers.size(), (ldapMembers.size() + supplementaryMembers.size()));

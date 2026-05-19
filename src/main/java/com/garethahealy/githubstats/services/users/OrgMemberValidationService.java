@@ -4,6 +4,7 @@ import com.garethahealy.githubstats.clients.QuayUserService;
 import com.garethahealy.githubstats.model.users.OrgMember;
 import com.garethahealy.githubstats.model.users.OrgMemberRepository;
 import com.garethahealy.githubstats.services.github.GitHubOrganizationLookupService;
+import com.garethahealy.githubstats.services.github.GitHubUserLookupService;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 import org.kohsuke.github.GHRepository;
@@ -18,11 +19,13 @@ public class OrgMemberValidationService {
 
     private final Logger logger;
     private final GitHubOrganizationLookupService gitHubOrganizationLookupService;
+    private final GitHubUserLookupService gitHubUserLookupService;
     private final QuayUserService quayUserService;
 
-    public OrgMemberValidationService(Logger logger, GitHubOrganizationLookupService gitHubOrganizationLookupService, QuayUserService quayUserService) {
+    public OrgMemberValidationService(Logger logger, GitHubOrganizationLookupService gitHubOrganizationLookupService, GitHubUserLookupService gitHubUserLookupService, QuayUserService quayUserService) {
         this.logger = logger;
         this.gitHubOrganizationLookupService = gitHubOrganizationLookupService;
+        this.gitHubUserLookupService = gitHubUserLookupService;
         this.quayUserService = quayUserService;
     }
 
@@ -60,7 +63,7 @@ public class OrgMemberValidationService {
                 userValue = githubUsername.split("/")[0];
             }
 
-            GHUser user = gitHubOrganizationLookupService.getUser(userValue);
+            GHUser user = gitHubUserLookupService.getUser(userValue);
             if (user == null) {
                 logger.warnf("%s was not found via the GitHub API, removing", githubUsername);
 

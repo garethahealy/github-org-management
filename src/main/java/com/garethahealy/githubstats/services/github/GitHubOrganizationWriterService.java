@@ -14,21 +14,10 @@ import java.io.IOException;
 @ApplicationScoped
 public class GitHubOrganizationWriterService {
 
-    private final Logger logger;
     private final GitHub client;
 
-    public GitHubOrganizationWriterService(Logger logger, @Named("write") GitHub client) {
+    public GitHubOrganizationWriterService(@Named("write") GitHub client) {
         this.client = client;
-        this.logger = logger;
-    }
-
-    @PostConstruct
-    void init() {
-        try {
-            logRateLimit();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public GHOrganization getOrganization(String organization) throws IOException {
@@ -49,10 +38,5 @@ public class GitHubOrganizationWriterService {
      */
     public GHRepository getRepository(String owner, String repo) throws IOException {
         return client.getRepository(owner + "/" + repo);
-    }
-
-    private void logRateLimit() throws IOException {
-        GHRateLimit rateLimit = client.getRateLimit();
-        logger.infof("RateLimit: limit %s, remaining %s, resetDate %s", rateLimit.getLimit(), rateLimit.getRemaining(), rateLimit.getResetDate());
     }
 }

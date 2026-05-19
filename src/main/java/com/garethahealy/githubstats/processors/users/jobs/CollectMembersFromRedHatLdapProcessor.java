@@ -47,6 +47,8 @@ public class CollectMembersFromRedHatLdapProcessor {
     }
 
     public void run(String organization, File ldapMembersCsv, File supplementaryCsv, boolean validateCsv, int limit) throws IOException, LdapException, TemplateException, ExecutionException, InterruptedException, URISyntaxException {
+        logger.infof("Looking up %s", organization);
+
         OrgMemberRepository ldapMembers = orgMemberCsvService.parse(ldapMembersCsv);
         OrgMemberRepository supplementaryMembers = orgMemberCsvService.parse(supplementaryCsv);
 
@@ -55,10 +57,8 @@ public class CollectMembersFromRedHatLdapProcessor {
         run(org, ldapMembers, supplementaryMembers, validateCsv, limit);
     }
 
-    public void run(GHOrganization org, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean validateCsv, int limit) throws IOException, LdapException, TemplateException, ExecutionException, InterruptedException, URISyntaxException {
-        logger.infof("Looking up %s", org.getLogin());
-
-        List<GHUser> githubMembers = gitHubOrganizationLookupService.listMembers(org);
+    private void run(GHOrganization org, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean validateCsv, int limit) throws IOException, LdapException, TemplateException, ExecutionException, InterruptedException, URISyntaxException {
+        List<GHUser> githubMembers = gitHubOrganizationLookupService.getMembers(org);
 
         logger.infof("There are %s GitHub members", githubMembers.size());
         logger.infof("There are %s known members and %s supplementary members in the CSVs, total %s", ldapMembers.size(), supplementaryMembers.size(), (ldapMembers.size() + supplementaryMembers.size()));
@@ -111,14 +111,15 @@ public class CollectMembersFromRedHatLdapProcessor {
      * @throws LdapException
      */
     private void searchViaLdapForLdapCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, LdapException {
+        LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
+
+        List<OrgMember> replace = new ArrayList<>();
+        List<OrgMember> filteredMembers = ldapMembers.filter(OrgMemberFilters.deleteAfterIsNull());
+
+        logger.infof("Searching LDAP for %s ldap members from %s", filteredMembers.size(), ldapMembers.name());
+
         try (LdapConnectionLease lease = ldapSearchService.open()) {
             LdapConnection connection = lease.connection();
-            LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
-
-            List<OrgMember> replace = new ArrayList<>();
-            List<OrgMember> filteredMembers = ldapMembers.filter(OrgMemberFilters.deleteAfterIsNull());
-
-            logger.infof("Searching LDAP for %s ldap members from %s", filteredMembers.size(), ldapMembers.name());
 
             for (OrgMember current : filteredMembers) {
                 OrgMember found = ldapSearchService.retrieve(connection, current);
@@ -156,14 +157,15 @@ public class CollectMembersFromRedHatLdapProcessor {
      * @throws URISyntaxException
      */
     private void searchViaLdapForSupplementaryCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, LdapException, URISyntaxException {
+        LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
+
+        List<OrgMember> replace = new ArrayList<>();
+        List<OrgMember> filteredMembers = supplementaryMembers.filter(OrgMemberFilters.deleteAfterIsNullAndMemberNotBot());
+
+        logger.infof("Searching LDAP for %s supplementary members from %s", filteredMembers.size(), supplementaryMembers.name());
+
         try (LdapConnectionLease lease = ldapSearchService.open()) {
             LdapConnection connection = lease.connection();
-            LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
-
-            List<OrgMember> replace = new ArrayList<>();
-            List<OrgMember> filteredMembers = supplementaryMembers.filter(OrgMemberFilters.deleteAfterIsNullAndMemberNotBot());
-
-            logger.infof("Searching LDAP for %s supplementary members from %s", filteredMembers.size(), supplementaryMembers.name());
 
             for (OrgMember current : filteredMembers) {
                 String primaryMail = ldapSearchService.searchOnPrimaryMail(connection, current.redhatEmailAddress());
@@ -201,13 +203,14 @@ public class CollectMembersFromRedHatLdapProcessor {
      * @throws URISyntaxException
      */
     private void searchViaLdapForUnknownMembers(List<GHUser> githubMembers, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, int limit) throws IOException, LdapException, URISyntaxException {
-        try (LdapConnectionLease lease = ldapSearchService.open()) {
-            LdapConnection connection = lease.connection();
-            int limitBy = limit <= 0 ? githubMembers.size() : limit;
-            List<GHUser> unknownUsers = githubMembers.stream().filter(GHUserFilters.notContains(ldapMembers, supplementaryMembers)).limit(limitBy).toList();
+        int limitBy = limit <= 0 ? githubMembers.size() : limit;
+        List<GHUser> unknownUsers = githubMembers.stream().filter(GHUserFilters.notContains(ldapMembers, supplementaryMembers)).limit(limitBy).toList();
 
-            if (!unknownUsers.isEmpty()) {
-                logger.infof("Searching LDAP for %s unknown GitHub members", unknownUsers.size());
+        if (!unknownUsers.isEmpty()) {
+            logger.infof("Searching LDAP for %s unknown GitHub members", unknownUsers.size());
+
+            try (LdapConnectionLease lease = ldapSearchService.open()) {
+                LdapConnection connection = lease.connection();
 
                 for (GHUser user : unknownUsers) {
                     String rhEmail = ldapSearchService.searchOnGitHubSocial(connection, user.getLogin());
@@ -222,6 +225,7 @@ public class CollectMembersFromRedHatLdapProcessor {
                 }
             }
         }
+
     }
 
     /**
