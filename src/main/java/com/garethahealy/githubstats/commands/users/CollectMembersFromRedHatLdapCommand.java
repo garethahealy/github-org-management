@@ -60,8 +60,7 @@ public class CollectMembersFromRedHatLdapCommand implements Runnable {
             }
 
             collectMembersFromRedHatLdapProcessor.run(organization, ldapMembersPath.toFile(), supplementaryPath.toFile(), validateCsv, limit);
-        } catch (IOException | LdapException | TemplateException |
-                    ExecutionException | InterruptedException | URISyntaxException e) {
+        } catch (IOException | LdapException | TemplateException | ExecutionException | InterruptedException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }

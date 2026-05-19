@@ -96,13 +96,13 @@ public class ListenToIssuesCommand implements Runnable {
 
             logger.infof("There are %s known members and %s supplementary members in the CSVs, total %s", ldapMembers.size(), supplementaryMembers.size(), (ldapMembers.size() + supplementaryMembers.size()));
 
-            process(orgRepo, activeProcessors, ldapMembers, supplementaryMembers, dryRun, failNoVpn);
+            process(orgRepo, activeProcessors, ldapMembers, supplementaryMembers, dryRun);
         } catch (IOException | LdapException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void process(GHRepository orgRepo, Set<String> activeProcessors, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean isDryRun, boolean failNoVpn) throws IOException, LdapException {
+    private void process(GHRepository orgRepo, Set<String> activeProcessors, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean isDryRun) throws IOException, LdapException {
         List<GHIssue> openIssues = gitHubRepositoryLookupService.listOpenIssues(orgRepo);
 
         logger.infof("Currently %s open issues", openIssues.size());
