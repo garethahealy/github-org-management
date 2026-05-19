@@ -45,13 +45,7 @@ public class CollectMembersFromRedHatLdapProcessor {
         this.orgMemberValidationService = orgMemberValidationService;
     }
 
-    public void run(String organization, File ldapMembersCsv, File supplementaryCsv, boolean validateCsv, int limit, boolean failNoVpn) throws IOException, LdapException, TemplateException, ExecutionException, InterruptedException, URISyntaxException {
-        if (!ldapSearchService.canConnect()) {
-            if (failNoVpn) {
-                throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
-            }
-        }
-
+    public void run(String organization, File ldapMembersCsv, File supplementaryCsv, boolean validateCsv, int limit) throws IOException, LdapException, TemplateException, ExecutionException, InterruptedException, URISyntaxException {
         OrgMemberRepository ldapMembers = orgMemberCsvService.parse(ldapMembersCsv);
         OrgMemberRepository supplementaryMembers = orgMemberCsvService.parse(supplementaryCsv);
 

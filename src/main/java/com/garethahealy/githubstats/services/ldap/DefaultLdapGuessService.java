@@ -22,10 +22,6 @@ public class DefaultLdapGuessService implements LdapGuessService {
         this.ldapSearchService = ldapSearchService;
     }
 
-    public boolean canConnect() throws IOException {
-        return ldapSearchService.canConnect();
-    }
-
     /**
      * Attempt to guess the 'userToGuess' using several rules
      *

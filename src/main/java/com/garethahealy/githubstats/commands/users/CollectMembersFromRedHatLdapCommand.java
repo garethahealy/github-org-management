@@ -1,5 +1,6 @@
 package com.garethahealy.githubstats.commands.users;
 
+import com.garethahealy.githubstats.factories.LdapConnectionFactory;
 import com.garethahealy.githubstats.processors.users.jobs.CollectMembersFromRedHatLdapProcessor;
 import freemarker.template.TemplateException;
 import jakarta.inject.Inject;
@@ -36,9 +37,18 @@ public class CollectMembersFromRedHatLdapCommand implements Runnable {
     @Inject
     CollectMembersFromRedHatLdapProcessor collectMembersFromRedHatLdapProcessor;
 
+    @Inject
+    LdapConnectionFactory ldapConnectionFactory;
+
     @Override
     public void run() {
         try {
+            if (!ldapConnectionFactory.canConnect()) {
+                if (failNoVpn) {
+                    throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+                }
+            }
+
             Path ldapMembersPath = Path.of(ldapMembersCsv);
             if (!Files.exists(ldapMembersPath)) {
                 Files.createFile(ldapMembersPath);
@@ -49,7 +59,7 @@ public class CollectMembersFromRedHatLdapCommand implements Runnable {
                 Files.createFile(supplementaryPath);
             }
 
-            collectMembersFromRedHatLdapProcessor.run(organization, ldapMembersPath.toFile(), supplementaryPath.toFile(), validateCsv, limit, failNoVpn);
+            collectMembersFromRedHatLdapProcessor.run(organization, ldapMembersPath.toFile(), supplementaryPath.toFile(), validateCsv, limit);
         } catch (IOException | LdapException | TemplateException |
                     ExecutionException | InterruptedException | URISyntaxException e) {
             throw new RuntimeException(e);

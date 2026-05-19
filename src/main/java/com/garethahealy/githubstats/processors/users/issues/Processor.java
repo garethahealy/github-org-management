@@ -14,5 +14,5 @@ public interface Processor {
 
     boolean isActive(GHIssue issue);
 
-    void process(GHIssue current, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean isDryRun, boolean failNoVpn) throws IOException, LdapException;
+    void process(GHIssue current, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean isDryRun) throws IOException, LdapException;
 }

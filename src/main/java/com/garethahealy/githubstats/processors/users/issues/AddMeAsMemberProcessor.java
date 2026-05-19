@@ -64,11 +64,11 @@ public class AddMeAsMemberProcessor implements Processor {
     }
 
     @Override
-    public void process(GHIssue current, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean isDryRun, boolean failNoVpn) throws IOException, LdapException {
+    public void process(GHIssue current, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean isDryRun) throws IOException, LdapException {
         if (isAlreadyKnownMember(current.getUser(), ldapMembers, supplementaryMembers)) {
             logger.infof("Issue was raised by %s, but they are a known member, ignoring", current.getUser());
         } else {
-            boolean found = searchViaLdapFor(current.getUser(), failNoVpn);
+            boolean found = searchViaLdapFor(current.getUser());
             if (found) {
                 labelUserInLdap(current, isDryRun);
             }
@@ -79,17 +79,10 @@ public class AddMeAsMemberProcessor implements Processor {
         return ldapMembers.containsKey(user.getLogin()) || supplementaryMembers.containsKey(user.getLogin());
     }
 
-    private boolean searchViaLdapFor(GHUser user, boolean failNoVpn) throws IOException, LdapException {
-        String answer = null;
-
-        if (ldapSearchService.canConnect()) {
-            try (LdapConnection connection = ldapSearchService.open()) {
-                answer = ldapSearchService.searchOnGitHubSocial(connection, user.getLogin());
-            }
-        } else {
-            if (failNoVpn) {
-                throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
-            }
+    private boolean searchViaLdapFor(GHUser user) throws IOException, LdapException {
+        String answer;
+        try (LdapConnection connection = ldapSearchService.open()) {
+            answer = ldapSearchService.searchOnGitHubSocial(connection, user.getLogin());
         }
 
         return answer != null && !answer.isEmpty();

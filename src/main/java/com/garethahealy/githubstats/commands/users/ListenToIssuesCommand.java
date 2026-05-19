@@ -1,5 +1,6 @@
 package com.garethahealy.githubstats.commands.users;
 
+import com.garethahealy.githubstats.factories.LdapConnectionFactory;
 import com.garethahealy.githubstats.model.users.OrgMemberRepository;
 import com.garethahealy.githubstats.processors.users.issues.AddMeAsMemberProcessor;
 import com.garethahealy.githubstats.processors.users.issues.Processor;
@@ -60,9 +61,18 @@ public class ListenToIssuesCommand implements Runnable {
     @Inject
     AddMeAsMemberProcessor addMeAsMemberProcessor;
 
+    @Inject
+    LdapConnectionFactory ldapConnectionFactory;
+
     @Override
     public void run() {
         try {
+            if (!ldapConnectionFactory.canConnect()) {
+                if (failNoVpn) {
+                    throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+                }
+            }
+
             Path ldapMembersPath = Path.of(ldapMembersCsv);
             if (!Files.exists(ldapMembersPath)) {
                 throw new FileNotFoundException("--ldap-members-csv=" + ldapMembersCsv + " not found.");
@@ -103,7 +113,7 @@ public class ListenToIssuesCommand implements Runnable {
                     if (processor.isActive(current)) {
                         logger.infof("#%s looking at Issue", current.getNumber());
 
-                        processor.process(current, ldapMembers, supplementaryMembers, isDryRun, failNoVpn);
+                        processor.process(current, ldapMembers, supplementaryMembers, isDryRun);
                     } else {
                         logger.infof("#%s Issue is not a %s change, ignoring", current.getNumber(), processor.id());
                     }

@@ -60,13 +60,7 @@ public class CreateWhoAreYouIssueProcessor {
         this.noopLdapGuessService = noopLdapGuessService;
     }
 
-    public void run(String organization, String issueRepo, File membersCsv, File supplementaryCsv, GHPermissionType perms, int limit, boolean isDryRun, boolean shouldGuess, boolean failNoVpn) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
-        if (!defaultLdapGuessService.canConnect()) {
-            if (failNoVpn) {
-                throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
-            }
-        }
-
+    public void run(String organization, String issueRepo, File membersCsv, File supplementaryCsv, GHPermissionType perms, int limit, boolean isDryRun, boolean shouldGuess) throws IOException, ExecutionException, InterruptedException, TemplateException, LdapException {
         ldapGuessService = shouldGuess ? defaultLdapGuessService : noopLdapGuessService;
 
         OrgMemberRepository ldapMembers = orgMemberCsvService.parse(membersCsv);

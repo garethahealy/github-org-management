@@ -1,5 +1,6 @@
 package com.garethahealy.githubstats.commands.users;
 
+import com.garethahealy.githubstats.factories.LdapConnectionFactory;
 import com.garethahealy.githubstats.processors.users.jobs.CreateWhoAreYouIssueProcessor;
 import freemarker.template.TemplateException;
 import jakarta.inject.Inject;
@@ -46,9 +47,18 @@ public class CreateWhoAreYouIssueCommand implements Runnable {
     @Inject
     CreateWhoAreYouIssueProcessor createWhoAreYouIssueProcessor;
 
+    @Inject
+    LdapConnectionFactory ldapConnectionFactory;
+
     @Override
     public void run() {
         try {
+            if (!ldapConnectionFactory.canConnect()) {
+                if (failNoVpn) {
+                    throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+                }
+            }
+
             Path ldapMembersPath = Path.of(ldapMembersCsv);
             if (!Files.exists(ldapMembersPath)) {
                 throw new FileNotFoundException("--ldap-members-csv=" + ldapMembersCsv + " not found.");
@@ -63,7 +73,7 @@ public class CreateWhoAreYouIssueCommand implements Runnable {
                 throw new IllegalArgumentException("--dry-run=" + dryRun + " but --issue-repo=" + orgRepo + " - 'issue-repo' cant be empty if 'dry-run' is false");
             }
 
-            createWhoAreYouIssueProcessor.run(organization, orgRepo, ldapMembersPath.toFile(), supplementaryPath.toFile(), convert(permission), limit, dryRun, shouldGuess, failNoVpn);
+            createWhoAreYouIssueProcessor.run(organization, orgRepo, ldapMembersPath.toFile(), supplementaryPath.toFile(), convert(permission), limit, dryRun, shouldGuess);
         } catch (IOException | TemplateException | ExecutionException | InterruptedException | LdapException e) {
             throw new RuntimeException(e);
         }

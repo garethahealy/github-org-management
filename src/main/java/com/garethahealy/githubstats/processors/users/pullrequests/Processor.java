@@ -22,5 +22,5 @@ public interface Processor {
 
     boolean isActive(GHPullRequest pullRequest) throws IOException;
 
-    void process(GHPullRequest current, Map<String, Set<String>> data, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean isDryRun, boolean failNoVpn) throws IOException, TemplateException, URISyntaxException, LdapException;
+    void process(GHPullRequest current, Map<String, Set<String>> data, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, boolean isDryRun) throws IOException, TemplateException, URISyntaxException, LdapException;
 }
