@@ -7,7 +7,6 @@ import org.jboss.logging.Logger;
 import org.kohsuke.github.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 

@@ -24,7 +24,7 @@ class LdapConnectionFactoryIT {
     }
 
     @Test
-    void open() throws IOException, LdapException {
+    void open() throws LdapException {
         try (LdapConnectionLease lease = factory.open()) {
             LdapConnection connection = lease.connection();
             assertNotNull(connection);

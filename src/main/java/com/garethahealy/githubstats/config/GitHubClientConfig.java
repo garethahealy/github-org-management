@@ -4,7 +4,6 @@ import io.quarkus.runtime.Startup;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 
