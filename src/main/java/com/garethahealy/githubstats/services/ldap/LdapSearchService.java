@@ -1,6 +1,7 @@
 package com.garethahealy.githubstats.services.ldap;
 
 import com.garethahealy.githubstats.factories.LdapConnectionFactory;
+import com.garethahealy.githubstats.factories.LdapConnectionLease;
 import com.garethahealy.githubstats.model.users.OrgMember;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.directory.api.ldap.model.entry.Attribute;
@@ -52,7 +53,7 @@ public class LdapSearchService {
      *
      * @return
      */
-    public LdapConnection open() {
+    public LdapConnectionLease open() throws LdapException {
         return connectionFactory.open();
     }
 

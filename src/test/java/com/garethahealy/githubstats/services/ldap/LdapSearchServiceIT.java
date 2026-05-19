@@ -1,5 +1,6 @@
 package com.garethahealy.githubstats.services.ldap;
 
+import com.garethahealy.githubstats.factories.LdapConnectionLease;
 import com.garethahealy.githubstats.model.users.OrgMember;
 import com.garethahealy.githubstats.testutils.BaseRequiresLdapConnection;
 import io.quarkus.test.junit.QuarkusTest;
@@ -28,7 +29,8 @@ class LdapSearchServiceIT extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void searchOnUser() throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             assertTrue(ldapSearchService.searchOnUser(connection, "gahealy"));
         }
     }
@@ -36,7 +38,8 @@ class LdapSearchServiceIT extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void searchOnName() throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             String answer = ldapSearchService.searchOnName(connection, "Gareth Healy");
 
             assertNotNull(answer);
@@ -47,7 +50,8 @@ class LdapSearchServiceIT extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void searchOnGitHubLogin() throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             String answer = ldapSearchService.searchOnGitHubLogin(connection, "gahealy");
 
             assertNotNull(answer);
@@ -58,7 +62,8 @@ class LdapSearchServiceIT extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void searchOnQuaySocial() throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             String answer = ldapSearchService.searchOnQuaySocial(connection, "garethahealy");
 
             assertNotNull(answer);
@@ -69,7 +74,8 @@ class LdapSearchServiceIT extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void searchOnPrimaryMail() throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             String answer = ldapSearchService.searchOnPrimaryMail(connection, "gahealy@redhat.com");
 
             assertNotNull(answer);
@@ -80,7 +86,8 @@ class LdapSearchServiceIT extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void retrieve() throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             OrgMember answer = ldapSearchService.retrieve(connection, "garethahealy", "gahealy@redhat.com");
 
             assertNotNull(answer);

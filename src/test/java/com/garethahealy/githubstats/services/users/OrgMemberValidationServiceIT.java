@@ -1,5 +1,6 @@
 package com.garethahealy.githubstats.services.users;
 
+import com.garethahealy.githubstats.factories.LdapConnectionLease;
 import com.garethahealy.githubstats.model.users.OrgMember;
 import com.garethahealy.githubstats.services.ldap.LdapSearchService;
 import com.garethahealy.githubstats.testutils.BaseRequiresLdapConnection;
@@ -26,7 +27,8 @@ class OrgMemberValidationServiceIT extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void validateSsulliva() throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             OrgMember answer = orgMemberValidationService.validate(ldapSearchService.retrieve(connection, "sean-m-sullivan", "ssulliva@redhat.com"));
             assertNotNull(answer);
 
@@ -42,7 +44,8 @@ class OrgMemberValidationServiceIT extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void validateClaudiol() throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             OrgMember answer = orgMemberValidationService.validate(ldapSearchService.retrieve(connection, "claudiol", "claudiol@redhat.com"));
             assertNotNull(answer);
 
@@ -58,7 +61,8 @@ class OrgMemberValidationServiceIT extends BaseRequiresLdapConnection {
     @Test
     @EnabledIf("canConnectVpn")
     void validateAblock() throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             OrgMember answer = orgMemberValidationService.validate(ldapSearchService.retrieve(connection, "sabre1041", "ablock@redhat.com"));
             assertNotNull(answer);
 

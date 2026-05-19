@@ -1,5 +1,6 @@
 package com.garethahealy.githubstats.processors.users.issues;
 
+import com.garethahealy.githubstats.factories.LdapConnectionLease;
 import com.garethahealy.githubstats.model.users.OrgMemberRepository;
 import com.garethahealy.githubstats.predicates.GHLabelFilters;
 import com.garethahealy.githubstats.services.ldap.LdapSearchService;
@@ -81,7 +82,8 @@ public class AddMeAsMemberProcessor implements Processor {
 
     private boolean searchViaLdapFor(GHUser user) throws IOException, LdapException {
         String answer;
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             answer = ldapSearchService.searchOnGitHubSocial(connection, user.getLogin());
         }
 

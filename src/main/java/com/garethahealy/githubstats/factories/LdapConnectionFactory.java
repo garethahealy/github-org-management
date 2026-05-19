@@ -3,16 +3,17 @@ package com.garethahealy.githubstats.factories;
 import com.garethahealy.githubstats.config.LdapConfigProperties;
 import com.garethahealy.githubstats.services.ldap.LdapSearchService;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.message.SearchScope;
 import org.apache.directory.api.ldap.model.name.Dn;
-import org.apache.directory.ldap.client.api.LdapConnection;
-import org.apache.directory.ldap.client.api.LdapNetworkConnection;
+import org.apache.directory.ldap.client.api.*;
 import org.apache.directory.ldap.client.api.search.FilterBuilder;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -26,24 +27,78 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class LdapConnectionFactory {
 
     private final Logger logger;
-    private final String ldapConnection;
-    private final String ldapDn;
-    private final String ldapWarmupUser;
+    private final LdapConfigProperties ldapConfig;
 
     private final AtomicBoolean warmedUp = new AtomicBoolean(false);
     private Dn systemDn;
+    private LdapConnectionPool connectionPool;
 
-    @Inject
-    public LdapConnectionFactory(Logger logger, LdapConfigProperties config) {
+    public LdapConnectionFactory(Logger logger, LdapConfigProperties ldapConfig) {
         this.logger = logger;
-        this.ldapConnection = config.connection();
-        this.ldapDn = config.dn();
-        this.ldapWarmupUser = config.warmupUser();
+        this.ldapConfig = ldapConfig;
     }
 
     @PostConstruct
     void init() {
+        setupSystemDn();
+        this.connectionPool = createLdapConnectionPool();
         ensureWarmedUp();
+    }
+
+    @PreDestroy
+    void destroy() {
+        if (connectionPool == null) {
+            return;
+        }
+
+        try {
+            connectionPool.close();
+            logger.debug("LDAP connection pool closed");
+        } catch (Exception e) {
+            logger.warnf(e, "Error closing LDAP connection pool");
+        } finally {
+            connectionPool = null;
+        }
+    }
+
+    private void setupSystemDn() {
+        try {
+            systemDn = new Dn(ldapConfig.dn());
+        } catch (LdapException ex) {
+            throw new IllegalStateException("Invalid LDAP DN in redhat.ldap.dn: " + ldapConfig.dn(), ex);
+        }
+    }
+
+    private LdapConnectionPool createLdapConnectionPool() {
+        LdapConnectionConfig config = new LdapConnectionConfig();
+        config.setLdapHost(ldapConfig.connection());
+        config.setLdapPort(ldapConfig.port());
+
+        DefaultLdapConnectionFactory factory = new DefaultLdapConnectionFactory(config);
+        GenericObjectPoolConfig<LdapConnection> poolConfig = new GenericObjectPoolConfig<>();
+        poolConfig.setMaxTotal(Runtime.getRuntime().availableProcessors());
+        poolConfig.setMaxIdle(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
+
+        return new LdapConnectionPool(new DefaultPoolableLdapConnectionFactory(factory), poolConfig);
+    }
+
+    private void ensureWarmedUp() {
+        try {
+            try (LdapConnectionLease lease = open()) {
+                LdapConnection connection = lease.connection();
+
+                String filter = FilterBuilder.equal("uid", ldapConfig.warmupUser()).toString();
+                try (EntryCursor cursor = connection.search(systemDn, filter, SearchScope.SUBTREE, "dn")) {
+                    for (Entry entry : cursor) {
+                        logger.infof("Warmup found %s", entry.getDn());
+                        warmedUp.set(true);
+                        break;
+                    }
+                }
+            }
+        } catch (IOException | LdapException e) {
+            logger.error("Failed to open connection to LDAP", e);
+        }
     }
 
     public boolean canConnect() {
@@ -54,31 +109,8 @@ public class LdapConnectionFactory {
         return warmedUp.get();
     }
 
-    public LdapConnection open() {
-        return new LdapNetworkConnection(ldapConnection);
-    }
-
-    private Dn getSystemDn() throws LdapException {
-        if (systemDn == null) {
-            systemDn = new Dn(ldapDn);
-        }
-
-        return systemDn;
-    }
-
-    private void ensureWarmedUp() {
-        try {
-            try (LdapConnection connection = open()) {
-                FilterBuilder filter = FilterBuilder.equal("uid", ldapWarmupUser);
-                String uid = searchDn(connection, filter);
-                if (!uid.isEmpty()) {
-                    logger.infof("Warmup found %s", uid);
-                    warmedUp.set(true);
-                }
-            }
-        } catch (IOException | LdapException e) {
-            logger.error("Failed to open connection to LDAP", e);
-        }
+    public LdapConnectionLease open() throws LdapException {
+        return new LdapConnectionLease(connectionPool, connectionPool.getConnection());
     }
 
     /**
@@ -93,7 +125,6 @@ public class LdapConnectionFactory {
     public String searchDn(LdapConnection connection, FilterBuilder filter) throws LdapException, IOException {
         String answer = "";
 
-        Dn systemDn = getSystemDn();
         try (EntryCursor cursor = connection.search(systemDn, filter.toString(), SearchScope.SUBTREE, LdapSearchService.AttributeKeys.Dn)) {
             for (Entry entry : cursor) {
                 logger.debugf("Found %s", filter);
@@ -113,7 +144,6 @@ public class LdapConnectionFactory {
 
         logger.debugf("Searching on: %s", filter);
 
-        Dn systemDn = getSystemDn();
         try (EntryCursor cursor = connection.search(systemDn, filter.toString(), SearchScope.SUBTREE, attributes)) {
             for (Entry entry : cursor) {
                 logger.debugf("Found %s", filter);

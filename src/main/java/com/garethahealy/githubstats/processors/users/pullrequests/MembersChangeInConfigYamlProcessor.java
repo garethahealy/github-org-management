@@ -1,6 +1,7 @@
 package com.garethahealy.githubstats.processors.users.pullrequests;
 
 import com.garethahealy.githubstats.clients.GitHubDiffService;
+import com.garethahealy.githubstats.factories.LdapConnectionLease;
 import com.garethahealy.githubstats.model.users.OrgMember;
 import com.garethahealy.githubstats.model.users.OrgMemberRepository;
 import com.garethahealy.githubstats.predicates.GHLabelFilters;
@@ -142,7 +143,8 @@ public class MembersChangeInConfigYamlProcessor implements Processor {
         List<OrgMember> answer = new ArrayList<>();
 
         if (!unknownSourceMembers.isEmpty()) {
-            try (LdapConnection connection = ldapSearchService.open()) {
+            try (LdapConnectionLease lease = ldapSearchService.open()) {
+                LdapConnection connection = lease.connection();
                 for (String current : unknownSourceMembers) {
                     String rhEmail = ldapSearchService.searchOnGitHubSocial(connection, current);
                     if (rhEmail.isEmpty()) {

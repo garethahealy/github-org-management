@@ -24,22 +24,25 @@ class LdapConnectionFactoryIT {
     }
 
     @Test
-    void open() throws IOException {
-        try (LdapConnection connection = factory.open()) {
+    void open() throws IOException, LdapException {
+        try (LdapConnectionLease lease = factory.open()) {
+            LdapConnection connection = lease.connection();
             assertNotNull(connection);
         }
     }
 
     @Test
     void searchDn() throws IOException, LdapException {
-        try (LdapConnection connection = factory.open()) {
+        try (LdapConnectionLease lease = factory.open()) {
+            LdapConnection connection = lease.connection();
             assertNotNull(factory.searchDn(connection, FilterBuilder.equal("uid", "gahealy")));
         }
     }
 
     @Test
     void search() throws IOException, LdapException {
-        try (LdapConnection connection = factory.open()) {
+        try (LdapConnectionLease lease = factory.open()) {
+            LdapConnection connection = lease.connection();
             assertNotNull(factory.search(connection, FilterBuilder.equal("uid", "gahealy"), "dn"));
         }
     }

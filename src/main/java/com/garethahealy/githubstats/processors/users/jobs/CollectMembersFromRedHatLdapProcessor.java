@@ -1,5 +1,6 @@
 package com.garethahealy.githubstats.processors.users.jobs;
 
+import com.garethahealy.githubstats.factories.LdapConnectionLease;
 import com.garethahealy.githubstats.model.users.OrgMember;
 import com.garethahealy.githubstats.model.users.OrgMemberRepository;
 import com.garethahealy.githubstats.predicates.GHUserFilters;
@@ -110,7 +111,8 @@ public class CollectMembersFromRedHatLdapProcessor {
      * @throws LdapException
      */
     private void searchViaLdapForLdapCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, LdapException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
 
             List<OrgMember> replace = new ArrayList<>();
@@ -154,7 +156,8 @@ public class CollectMembersFromRedHatLdapProcessor {
      * @throws URISyntaxException
      */
     private void searchViaLdapForSupplementaryCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, LdapException, URISyntaxException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
 
             List<OrgMember> replace = new ArrayList<>();
@@ -198,7 +201,8 @@ public class CollectMembersFromRedHatLdapProcessor {
      * @throws URISyntaxException
      */
     private void searchViaLdapForUnknownMembers(List<GHUser> githubMembers, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, int limit) throws IOException, LdapException, URISyntaxException {
-        try (LdapConnection connection = ldapSearchService.open()) {
+        try (LdapConnectionLease lease = ldapSearchService.open()) {
+            LdapConnection connection = lease.connection();
             int limitBy = limit <= 0 ? githubMembers.size() : limit;
             List<GHUser> unknownUsers = githubMembers.stream().filter(GHUserFilters.notContains(ldapMembers, supplementaryMembers)).limit(limitBy).toList();
 
