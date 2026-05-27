@@ -37,7 +37,7 @@ public class CollectMembersFromRedHatLdapCommand implements Runnable {
 
     @Inject
     Logger logger;
-    
+
     @Inject
     CollectMembersFromRedHatLdapProcessor collectMembersFromRedHatLdapProcessor;
 
