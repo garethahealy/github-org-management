@@ -31,32 +31,32 @@ public class GitHubClientConfig {
     @Produces
     @Named(value = "write")
     public GitHub getWriteClient() throws IOException {
-        return getClientVia(new GitHubBuilder().withOAuthToken(githubWriteOauth, githubLogin));
+        return getClientVia(new GitHubBuilder().withOAuthToken(githubWriteOauth, githubLogin), "write");
     }
 
     @Singleton
     @Produces
     @Named(value = "read")
     public GitHub getClient() throws IOException {
-        return getClientVia(new GitHubBuilder().withOAuthToken(githubOauth, githubLogin));
+        return getClientVia(new GitHubBuilder().withOAuthToken(githubOauth, githubLogin), "read");
     }
 
-    private GitHub getClientVia(GitHubBuilder builder) throws IOException {
+    private GitHub getClientVia(GitHubBuilder builder, String id) throws IOException {
         GitHub gitHub = builder.build();
         if (gitHub.isAnonymous()) {
-            throw new IllegalStateException("isAnonymous - have you set GITHUB_LOGIN / GITHUB_OAUTH ?");
+            throw new IllegalStateException(id + ": isAnonymous - have you set GITHUB_LOGIN / GITHUB_OAUTH ?");
         }
 
         if (!gitHub.isCredentialValid()) {
-            throw new IllegalStateException("isCredentialValid - are GITHUB_LOGIN / GITHUB_OAUTH valid?");
+            throw new IllegalStateException(id + ": isCredentialValid - are GITHUB_LOGIN / GITHUB_OAUTH valid?");
         }
 
         GHRateLimit rateLimit = gitHub.getRateLimit();
         if (rateLimit.getRemaining() == 0) {
-            throw new IllegalStateException("RateLimit - is zero, you need to wait until the reset date");
+            throw new IllegalStateException(id + ": RateLimit - is zero, you need to wait until the reset date");
         }
 
-        logger.infof("RateLimit: limit %s, remaining %s, resetDate %s", rateLimit.getLimit(), rateLimit.getRemaining(), rateLimit.getResetDate());
+        logger.infof("%s: limit %s, remaining %s, resetDate %s", id, rateLimit.getLimit(), rateLimit.getRemaining(), rateLimit.getResetDate());
         return gitHub;
     }
 }
