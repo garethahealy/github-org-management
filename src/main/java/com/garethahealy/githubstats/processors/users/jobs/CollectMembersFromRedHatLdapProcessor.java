@@ -25,6 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Search and collect the GitHub members from the Red Hat LDAP.
@@ -70,8 +73,8 @@ public class CollectMembersFromRedHatLdapProcessor {
             searchViaLdapForLdapCsvMembers(ldapMembers, supplementaryMembers);
             searchViaLdapForSupplementaryCsvMembers(ldapMembers, supplementaryMembers);
 
-            validateOrgMembersAccounts(ldapMembers);
-            validateOrgMembersAccounts(supplementaryMembers);
+            orgMemberValidationService.validate(ldapMembers);
+            orgMemberValidationService.validate(supplementaryMembers);
         }
 
         searchViaLdapForUnknownMembers(githubMembers, ldapMembers, supplementaryMembers, limit);
@@ -110,41 +113,56 @@ public class CollectMembersFromRedHatLdapProcessor {
      * @throws IOException
      * @throws LdapException
      */
-    private void searchViaLdapForLdapCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, LdapException {
+    private void searchViaLdapForLdapCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, ExecutionException, InterruptedException {
         LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
-
-        List<OrgMember> replace = new ArrayList<>();
         List<OrgMember> filteredMembers = ldapMembers.filter(OrgMemberFilters.deleteAfterIsNull());
 
         logger.infof("Searching LDAP for %s ldap members from %s", filteredMembers.size(), ldapMembers.name());
 
-        try (LdapConnectionLease lease = ldapSearchService.open()) {
-            LdapConnection connection = lease.connection();
+        List<OrgMember> replace = new ArrayList<>();
+        List<OrgMember> add = new ArrayList<>();
 
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<OrgMember>> futures = new ArrayList<>();
             for (OrgMember current : filteredMembers) {
-                OrgMember found = ldapSearchService.retrieve(connection, current);
-                if (found == null) {
-                    logger.warnf("%s cannot be found in LDAP via PrimaryMail and GitHub social for %s CSV", current.gitHubUsername(), ldapMembers.name());
+                futures.add(executor.submit(() -> {
+                    try (LdapConnectionLease lease = ldapSearchService.open()) {
+                        LdapConnection connection = lease.connection();
+                        OrgMember found = ldapSearchService.retrieve(connection, current);
+                        if (found == null) {
+                            logger.warnf("%s cannot be found in LDAP via PrimaryMail and GitHub social for %s CSV", current.gitHubUsername(), ldapMembers.name());
 
-                    String email = ldapSearchService.searchOnPrimaryMail(connection, current.redhatEmailAddress());
-                    if (email.isEmpty()) {
-                        replace.add(current.withDeleteAfter(deleteAfter));
-                    } else {
-                        logger.warnf("-> but found %s in LDAP - have they unlinked their GitHub social? moving to %s", current.redhatEmailAddress(), supplementaryMembers.name());
+                            String email = ldapSearchService.searchOnPrimaryMail(connection, current.redhatEmailAddress());
+                            if (email.isEmpty()) {
+                                replace.add(current.withDeleteAfter(deleteAfter));
+                            } else {
+                                logger.warnf("-> but found %s in LDAP - have they unlinked their GitHub social? moving to %s", current.redhatEmailAddress(), supplementaryMembers.name());
 
-                        ldapMembers.remove(current);
-                        supplementaryMembers.put(current);
+                                add.add(current);
+                            }
+                        } else {
+                            if (current != found) {
+                                // Maybe they've added their quay or extra details we didn't get the first time
+                                replace.add(found);
+                            }
+                        }
+
+                        return current;
+                    } catch (LdapException | IOException e) {
+                        throw new RuntimeException(e);
                     }
-                } else {
-                    if (current != found) {
-                        // Maybe they've added their quay or extra details we didn't get the first time
-                        replace.add(found);
-                    }
-                }
+                }));
             }
 
-            ldapMembers.replace(replace);
+            for (Future<OrgMember> future : futures) {
+                future.get();
+            }
         }
+
+        // Update lists
+        ldapMembers.replace(replace);
+        ldapMembers.remove(add);
+        supplementaryMembers.put(add);
     }
 
     /**
@@ -156,39 +174,50 @@ public class CollectMembersFromRedHatLdapProcessor {
      * @throws LdapException
      * @throws URISyntaxException
      */
-    private void searchViaLdapForSupplementaryCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, LdapException, URISyntaxException {
+    private void searchViaLdapForSupplementaryCsvMembers(OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers) throws IOException, ExecutionException, InterruptedException {
         LocalDate deleteAfter = LocalDate.now().plusWeeks(1);
-
-        List<OrgMember> replace = new ArrayList<>();
         List<OrgMember> filteredMembers = supplementaryMembers.filter(OrgMemberFilters.deleteAfterIsNullAndMemberNotBot());
 
         logger.infof("Searching LDAP for %s supplementary members from %s", filteredMembers.size(), supplementaryMembers.name());
 
-        try (LdapConnectionLease lease = ldapSearchService.open()) {
-            LdapConnection connection = lease.connection();
+        List<OrgMember> replace = new ArrayList<>();
+        List<OrgMember> add = new ArrayList<>();
 
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<OrgMember>> futures = new ArrayList<>();
             for (OrgMember current : filteredMembers) {
-                String primaryMail = ldapSearchService.searchOnPrimaryMail(connection, current.redhatEmailAddress());
-                if (primaryMail.isEmpty()) {
-                    logger.warnf("%s cannot be found in LDAP via PrimaryMail for %s CSV", current.gitHubUsername(), supplementaryMembers.name());
+                futures.add(executor.submit(() -> {
+                    try (LdapConnectionLease lease = ldapSearchService.open()) {
+                        LdapConnection connection = lease.connection();
+                        String primaryMail = ldapSearchService.searchOnPrimaryMail(connection, current.redhatEmailAddress());
+                        if (primaryMail.isEmpty()) {
+                            logger.warnf("%s cannot be found in LDAP via PrimaryMail for %s CSV", current.gitHubUsername(), supplementaryMembers.name());
 
-                    replace.add(current.withDeleteAfter(deleteAfter));
-                } else {
-                    OrgMember found = ldapSearchService.retrieve(connection, current);
-                    if (found != null) {
-                        logger.infof("%s has linked their account, adding to %s CSV", current.gitHubUsername(), ldapMembers.name());
+                            replace.add(current.withDeleteAfter(deleteAfter));
+                        } else {
+                            OrgMember found = ldapSearchService.retrieve(connection, current);
+                            if (found != null) {
+                                logger.infof("%s has linked their account, adding to %s CSV", current.gitHubUsername(), ldapMembers.name());
 
-                        ldapMembers.put(found);
+                                add.add(found);
+                            }
+                        }
+
+                        return current;
+                    } catch (LdapException | IOException e) {
+                        throw new RuntimeException(e);
                     }
-                }
+                }));
             }
 
-            supplementaryMembers.replace(replace);
+            for (Future<OrgMember> future : futures) {
+                future.get();
+            }
         }
-    }
 
-    private void validateOrgMembersAccounts(OrgMemberRepository members) throws IOException {
-        orgMemberValidationService.validate(members);
+        // Update lists
+        supplementaryMembers.replace(replace);
+        ldapMembers.put(add);
     }
 
     /**
@@ -202,30 +231,49 @@ public class CollectMembersFromRedHatLdapProcessor {
      * @throws LdapException
      * @throws URISyntaxException
      */
-    private void searchViaLdapForUnknownMembers(List<GHUser> githubMembers, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, int limit) throws IOException, LdapException, URISyntaxException {
+    private void searchViaLdapForUnknownMembers(List<GHUser> githubMembers, OrgMemberRepository ldapMembers, OrgMemberRepository supplementaryMembers, int limit) throws IOException, ExecutionException, InterruptedException {
         int limitBy = limit <= 0 ? githubMembers.size() : limit;
         List<GHUser> unknownUsers = githubMembers.stream().filter(GHUserFilters.notContains(ldapMembers, supplementaryMembers)).limit(limitBy).toList();
 
         if (!unknownUsers.isEmpty()) {
             logger.infof("Searching LDAP for %s unknown GitHub members", unknownUsers.size());
 
-            try (LdapConnectionLease lease = ldapSearchService.open()) {
-                LdapConnection connection = lease.connection();
+            List<OrgMember> add = new ArrayList<>();
+
+            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                List<Future<GHUser>> futures = new ArrayList<>();
 
                 for (GHUser user : unknownUsers) {
-                    String rhEmail = ldapSearchService.searchOnGitHubSocial(connection, user.getLogin());
-                    if (rhEmail.isEmpty()) {
-                        logger.warnf("%s cannot be found in LDAP via GitHub social", user.getLogin());
-                    } else {
-                        logger.infof("Adding %s to %s CSV", user.getLogin(), ldapMembers.name());
+                    futures.add(executor.submit(() -> {
+                        try (LdapConnectionLease lease = ldapSearchService.open()) {
+                            LdapConnection connection = lease.connection();
 
-                        OrgMember orgMember = orgMemberValidationService.validate(ldapSearchService.retrieve(connection, user.getLogin(), rhEmail));
-                        ldapMembers.put(orgMember);
-                    }
+                            String rhEmail = ldapSearchService.searchOnGitHubSocial(connection, user.getLogin());
+                            if (rhEmail.isEmpty()) {
+                                logger.warnf("%s cannot be found in LDAP via GitHub social", user.getLogin());
+                            } else {
+                                logger.infof("Adding %s to %s CSV", user.getLogin(), ldapMembers.name());
+
+                                OrgMember orgMember = orgMemberValidationService.validate(ldapSearchService.retrieve(connection, user.getLogin(), rhEmail));
+                                add.add(orgMember);
+
+                            }
+
+                            return user;
+                        } catch (LdapException | IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }));
+                }
+
+                for (Future<GHUser> future : futures) {
+                    future.get();
                 }
             }
-        }
 
+            // Update lists
+            ldapMembers.put(add);
+        }
     }
 
     /**

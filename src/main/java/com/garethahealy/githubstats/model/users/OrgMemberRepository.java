@@ -38,6 +38,12 @@ public class OrgMemberRepository {
         return members.size();
     }
 
+    public void put(List<OrgMember> add) throws IOException {
+        for (OrgMember current : add) {
+            put(current);
+        }
+    }
+
     public OrgMember put(OrgMember add) throws IOException {
         return members.put(add.gitHubUsername(), add);
     }

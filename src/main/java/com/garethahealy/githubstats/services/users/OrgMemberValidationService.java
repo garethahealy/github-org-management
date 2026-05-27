@@ -1,6 +1,7 @@
 package com.garethahealy.githubstats.services.users;
 
 import com.garethahealy.githubstats.clients.QuayUserService;
+import com.garethahealy.githubstats.concurrent.BoundedVirtualThreadExecutor;
 import com.garethahealy.githubstats.model.users.OrgMember;
 import com.garethahealy.githubstats.model.users.OrgMemberRepository;
 import com.garethahealy.githubstats.services.github.GitHubOrganizationLookupService;
@@ -13,6 +14,7 @@ import org.kohsuke.github.GHUser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
 
 @ApplicationScoped
 public class OrgMemberValidationService {
@@ -29,9 +31,23 @@ public class OrgMemberValidationService {
         this.quayUserService = quayUserService;
     }
 
-    public void validate(OrgMemberRepository members) throws IOException {
-        for (OrgMember current : members.items()) {
-            validate(current);
+    public void validate(OrgMemberRepository members) throws IOException, ExecutionException, InterruptedException {
+        // Use bounded because of GitHub rate limit: https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api#about-secondary-rate-limits
+        try (ExecutorService executor = new BoundedVirtualThreadExecutor(Runtime.getRuntime().availableProcessors())) {
+            List<Future<OrgMember>> futures = new ArrayList<>();
+            for (OrgMember current : members.items()) {
+                futures.add(executor.submit(() -> {
+                    try {
+                        return validate(current);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }));
+            }
+
+            for (Future<OrgMember> future : futures) {
+                future.get();
+            }
         }
     }
 
