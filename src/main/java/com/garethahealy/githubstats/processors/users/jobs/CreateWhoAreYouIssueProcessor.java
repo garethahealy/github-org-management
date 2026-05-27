@@ -38,7 +38,7 @@ public class CreateWhoAreYouIssueProcessor {
     private final GitHubOrganizationLookupService gitHubOrganizationLookupService;
     private final GitHubOrganizationWriterService gitHubOrganizationWriterService;
     private final OrgMemberCsvService orgMemberCsvService;
-    
+
     private final DefaultLdapGuessService defaultLdapGuessService;
     private final NoopLdapGuessService noopLdapGuessService;
     private LdapGuessService ldapGuessService;
