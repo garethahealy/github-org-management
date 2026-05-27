@@ -83,6 +83,9 @@ public class ListenToPullRequestsCommand implements Runnable {
             if (!ldapConnectionFactory.canConnect()) {
                 if (failNoVpn) {
                     throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+                } else {
+                    logger.warn("Failed to connect to LDAP; exiting");
+                    return;
                 }
             }
 

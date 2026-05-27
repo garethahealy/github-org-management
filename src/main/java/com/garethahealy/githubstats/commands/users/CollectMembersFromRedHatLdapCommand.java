@@ -5,6 +5,7 @@ import com.garethahealy.githubstats.processors.users.jobs.CollectMembersFromRedH
 import freemarker.template.TemplateException;
 import jakarta.inject.Inject;
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.jboss.logging.Logger;
 import picocli.CommandLine;
 
 import java.io.IOException;
@@ -35,6 +36,9 @@ public class CollectMembersFromRedHatLdapCommand implements Runnable {
     boolean failNoVpn;
 
     @Inject
+    Logger logger;
+    
+    @Inject
     CollectMembersFromRedHatLdapProcessor collectMembersFromRedHatLdapProcessor;
 
     @Inject
@@ -46,6 +50,9 @@ public class CollectMembersFromRedHatLdapCommand implements Runnable {
             if (!ldapConnectionFactory.canConnect()) {
                 if (failNoVpn) {
                     throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+                } else {
+                    logger.warn("Failed to connect to LDAP; exiting");
+                    return;
                 }
             }
 
