@@ -1,14 +1,12 @@
 package com.garethahealy.githubstats.services.github;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Named;
 import org.jboss.logging.Logger;
-import org.kohsuke.github.*;
+import org.kohsuke.github.GHUser;
+import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Retrieves GitHub Organization data
@@ -29,7 +27,7 @@ public class GitHubUserLookupService {
         try {
             answer = client.getUser(user);
         } catch (IOException ex) {
-            logger.error(ex);
+            logger.errorf(ex, "Failed for %s", user);
         }
 
         return answer;
