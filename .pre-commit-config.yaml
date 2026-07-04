@@ -35,7 +35,7 @@ repos:
       - id: rh-pre-commit
       - id: rh-pre-commit.commit-msg # Optional for commit-msg attestation
   - repo: https://codeberg.org/gherynos/pre-commit-java
-    rev: v0.2.4
+    rev: v0.6.42
     hooks:
       - id: checkstyle
   - repo: https://github.com/gitleaks/gitleaks
