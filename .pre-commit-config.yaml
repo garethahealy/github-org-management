@@ -34,10 +34,6 @@ repos:
       # Docs: https://source.redhat.com/departments/it/it-information-security/leaktk/leaktk_components/rh_pre_commit
       - id: rh-pre-commit
       - id: rh-pre-commit.commit-msg # Optional for commit-msg attestation
-  - repo: https://codeberg.org/gherynos/pre-commit-java
-    rev: v0.6.42
-    hooks:
-      - id: checkstyle
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.16.3
     hooks:
