@@ -42,11 +42,11 @@ class CollectMembersFromRedHatLdapCommandIT {
         Map<String, OrgMember> supplementaryOutput = csvParser.parse(CollectMembersFromRedHatLdapCommandSetup.run.SUPPLEMENTARY);
 
         assertNotNull(ldapOutput);
-        assertTrue(ldapOutput.size() > 200);
+        assertTrue(ldapOutput.size() > 260);
         assertTrue(ldapOutput.values().stream().filter(OrgMemberFilters.deleteAfterIsNotNull()).toList().isEmpty());
 
         assertNotNull(supplementaryOutput);
-        assertEquals(20, supplementaryOutput.size());
+        assertEquals(18, supplementaryOutput.size());
         assertTrue(supplementaryOutput.values().stream().filter(OrgMemberFilters.deleteAfterIsNotNull()).toList().isEmpty());
     }
 
@@ -72,7 +72,7 @@ class CollectMembersFromRedHatLdapCommandIT {
         assertTrue(ldapOutput.values().stream().filter(OrgMemberFilters.deleteAfterIsNotNull()).toList().isEmpty());
 
         assertNotNull(supplementaryOutput);
-        assertEquals(20, supplementaryOutput.size());
+        assertEquals(18, supplementaryOutput.size());
         assertTrue(supplementaryOutput.values().stream().filter(OrgMemberFilters.deleteAfterIsNotNull()).toList().isEmpty());
     }
 
@@ -99,7 +99,7 @@ class CollectMembersFromRedHatLdapCommandIT {
         assertTrue(ldapOutput.values().stream().filter(OrgMemberFilters.deleteAfterIsNotNull()).toList().isEmpty());
 
         assertNotNull(supplementaryOutput);
-        assertEquals(20, supplementaryOutput.size());
+        assertEquals(18, supplementaryOutput.size());
         assertTrue(supplementaryOutput.values().stream().filter(OrgMemberFilters.deleteAfterIsNotNull()).toList().isEmpty());
     }
 }

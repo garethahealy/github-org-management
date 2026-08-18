@@ -49,7 +49,7 @@ class OrgMemberCsvServiceTest {
         OrgMemberRepository answer = orgMemberCsvService.parse(input);
 
         assertNotNull(answer);
-        assertTrue(answer.size() > 200);
+        assertTrue(answer.size() > 260);
     }
 
     @Test
@@ -59,6 +59,6 @@ class OrgMemberCsvServiceTest {
         OrgMemberRepository answer = orgMemberCsvService.parse(input);
 
         assertNotNull(answer);
-        assertEquals(20, answer.size());
+        assertEquals(18, answer.size());
     }
 }
