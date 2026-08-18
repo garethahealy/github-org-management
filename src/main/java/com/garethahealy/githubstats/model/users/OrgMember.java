@@ -168,8 +168,14 @@ public record OrgMember(String redhatEmailAddress, String gitHubUsername, List<S
             .replace("http://", "")
             .replace(".", "");
 
+        // Example: https://github.com/sean-m-sullivan/
         if (value.endsWith("/")) {
             value = value.substring(0, value.length() - 1);
+        }
+
+        // Example: https://github.com/redcx1?tab=projects
+        if (value.contains("?")) {
+            value = value.substring(0, value.indexOf("?"));
         }
 
         return value;

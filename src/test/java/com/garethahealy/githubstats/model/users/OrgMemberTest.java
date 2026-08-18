@@ -52,6 +52,19 @@ class OrgMemberTest {
     }
 
     @Test
+    void handlesGithubOrgContainsQuestion() {
+        Map<String, List<String>> entries = new HashMap<>();
+        entries.put(LdapSearchService.AttributeKeys.PrimaryMail, List.of("gahealy@redhat.com"));
+        entries.put(LdapSearchService.AttributeKeys.SocialURLGitHub, List.of("https://github.com/redcx1?tab=projects"));
+
+        OrgMember member = OrgMember.from("garethahealy", entries);
+
+        assertNotNull(member.linkedGitHubUsernames());
+        assertFalse(member.linkedGitHubUsernames().isEmpty());
+        assertEquals("redcx1", member.linkedGitHubUsernames().getFirst());
+    }
+
+    @Test
     void handlesQuayUserUrl() {
         Map<String, List<String>> entries = new HashMap<>();
         entries.put(LdapSearchService.AttributeKeys.PrimaryMail, List.of("gahealy@redhat.com"));

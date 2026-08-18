@@ -27,7 +27,8 @@ public class GitHubUserLookupService {
         try {
             answer = client.getUser(user);
         } catch (IOException ex) {
-            logger.errorf(ex, "Failed for %s", user);
+            logger.errorf("Failed for %s", user);
+            logger.debugf(ex, "%s", user);
         }
 
         return answer;
