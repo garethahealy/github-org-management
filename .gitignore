@@ -3,7 +3,7 @@
 
 target/
 
-member-mapping/*
+member-mapping/
 ldap-members.csv
 supplementary.csv
 

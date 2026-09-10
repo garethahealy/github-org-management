@@ -75,12 +75,13 @@ public class LdapConnectionFactory {
         config.setLdapHost(ldapConfig.connection());
         config.setLdapPort(ldapConfig.port());
 
-        DefaultLdapConnectionFactory factory = new DefaultLdapConnectionFactory(config);
         GenericObjectPoolConfig<LdapConnection> poolConfig = new GenericObjectPoolConfig<>();
         poolConfig.setMaxTotal(Runtime.getRuntime().availableProcessors());
         poolConfig.setMaxIdle(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
 
-        return new LdapConnectionPool(new DefaultPoolableLdapConnectionFactory(factory), poolConfig);
+        return new LdapConnectionPool(
+                new DefaultPoolableLdapConnectionFactory(new GssapiLdapConnectionFactory(config, logger, ldapConfig.kerberos())),
+                poolConfig);
     }
 
     private void ensureWarmedUp() {
