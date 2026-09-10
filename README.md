@@ -30,8 +30,11 @@ export GITHUB_OAUTH=replace
 ## LDAP Lookup
 
 ```bash
-ldapsearch -x -h ldap.corp.redhat.com -b dc=redhat,dc=com -s sub 'uid=gahealy'
-ldapsearch -x -h ldap.corp.redhat.com -b dc=redhat,dc=com -s sub 'rhatSocialURL=Github->*garethahealy*'
+export KRB5CCNAME=FILE:/tmp/krb5cc_$(id -u)
+kinit gahealy@IPA.REDHAT.COM
+
+ldapsearch -Y GSSAPI -H ldap:///dc%3Dipa%2Cdc%3Dredhat%2Cdc%3Dcom -b cn=users,cn=accounts,dc=ipa,dc=redhat,dc=com -s sub 'uid=gahealy'
+ldapsearch -Y GSSAPI -H ldap:///dc%3Dipa%2Cdc%3Dredhat%2Cdc%3Dcom -b cn=users,cn=accounts,dc=ipa,dc=redhat,dc=com -s sub 'rhatSocialURL=Github->*garethahealy*'
 ```
 
 ## APIs
