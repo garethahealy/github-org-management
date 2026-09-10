@@ -69,7 +69,7 @@ public class ListenToIssuesCommand implements Runnable {
         try {
             if (!ldapConnectionFactory.canConnect()) {
                 if (failNoVpn) {
-                    throw new IOException("Unable to connect to LDAP. Are you on the VPN?");
+                    throw new IOException("Unable to connect to LDAP. See the LDAP warmup error above.");
                 } else {
                     logger.warn("Failed to connect to LDAP; exiting");
                     return;
