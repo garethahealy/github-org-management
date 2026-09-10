@@ -1,4 +1,4 @@
-# github-stats
+# github-org-management
 
 CLI to generate stats and issues for a GitHub org.
 
@@ -14,7 +14,7 @@ Both JVM and Native mode are supported.
 Which allows you to run via:
 
 ```bash
-./target/github-stats-*-runner help
+./target/github-org-management-*-runner help
 java -jar target/quarkus-app/quarkus-run.jar help
 ```
 
@@ -42,7 +42,7 @@ ldapsearch -Y GSSAPI -H ldap:///dc%3Dipa%2Cdc%3Dredhat%2Cdc%3Dcom -b cn=users,cn
 Once you've built the code, you can execute the commands, for example:
 
 ```bash
-./target/github-stats-*-runner users collect-members-from-ldap --organization=redhat-cop --csv-output=ldap-members.csv --ldap-members-csv=ldap-members.csv --fail-if-no-vpn=true --guess=false
+./target/github-org-management-*-runner users collect-members-from-ldap --organization=redhat-cop --csv-output=ldap-members.csv --ldap-members-csv=ldap-members.csv --fail-if-no-vpn=true --guess=false
 ```
 
 For a full list of commands, see: [docs](docs)

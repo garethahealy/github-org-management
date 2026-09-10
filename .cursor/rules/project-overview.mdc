@@ -1,11 +1,11 @@
 ---
-description: Project overview and conventions for github-stats CLI
+description: Project overview and conventions for github-org-management CLI
 alwaysApply: true
 ---
 
 # Project Overview
 
-Quarkus 3 CLI application (`github-stats`) for GitHub organization stats and member management. Uses Picocli for commands, MicroProfile REST Client for HTTP, and Apache Directory API for LDAP.
+Quarkus 3 CLI application (`github-org-management`) for GitHub organization stats and member management. Uses Picocli for commands, MicroProfile REST Client for HTTP, and Apache Directory API for LDAP.
 
 ## Tech Stack
 
@@ -20,7 +20,7 @@ Quarkus 3 CLI application (`github-stats`) for GitHub organization stats and mem
 
 ## Package Structure
 
-Base: `com.garethahealy.githubstats`
+Base: `com.garethahealy.githuborgmanagement`
 
 - `commands` / `commands.stats` / `commands.users` — Picocli CLI commands
 - `clients` / `clients.rest` - HTTP clients and MicroProfile REST interfaces

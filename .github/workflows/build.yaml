@@ -69,7 +69,7 @@ jobs:
           GITHUB_OAUTH: ${{ secrets.COP_GITHUB_OAUTH }}
           GITHUB_WRITE_OAUTH: ${{ secrets.COP_GITHUB_WRITE_OAUTH }}
         run: |
-          runners=(target/github-stats-*-runner)
+          runners=(target/github-org-management-*-runner)
           echo "cmd=$(basename ${runners[0]})" >> "$GITHUB_OUTPUT"
 
           "${runners[0]}" help
@@ -85,14 +85,14 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: runner
-          path: target/github-stats-*-runner
+          path: target/github-org-management-*-runner
           if-no-files-found: error
 
       - name: Generate hashes
         shell: bash
         id: hash
         run: |
-          echo "hashes=$(sha256sum target/github-stats-*-runner | base64 -w0)" >> "$GITHUB_OUTPUT"
+          echo "hashes=$(sha256sum target/github-org-management-*-runner | base64 -w0)" >> "$GITHUB_OUTPUT"
 
       - name: Get image tags
         id: image_tags
@@ -109,7 +109,7 @@ jobs:
         uses: redhat-actions/buildah-build@3a51aade9afa17e5c78256bcbe2e1ee08c7b995b # v3.0.2
         with:
           containerfiles: src/main/docker/Dockerfile
-          image: github-stats
+          image: github-org-management
           oci: true
           tags: "${{ steps.image_tags.outputs.IMAGE_TAGS }}"
           extra-args: "--squash"
@@ -119,7 +119,7 @@ jobs:
           GITHUB_LOGIN: ${{ secrets.COP_GITHUB_LOGIN }}
           GITHUB_OAUTH: ${{ secrets.COP_GITHUB_OAUTH }}
           GITHUB_WRITE_OAUTH: ${{ secrets.COP_GITHUB_WRITE_OAUTH }}
-        run: podman run -e GITHUB_LOGIN=${GITHUB_LOGIN} -e GITHUB_OAUTH=${GITHUB_OAUTH} -e GITHUB_WRITE_OAUTH=${GITHUB_WRITE_OAUTH} localhost/github-stats:latest help
+        run: podman run -e GITHUB_LOGIN=${GITHUB_LOGIN} -e GITHUB_OAUTH=${GITHUB_OAUTH} -e GITHUB_WRITE_OAUTH=${GITHUB_WRITE_OAUTH} localhost/github-org-management:latest help
 
       - name: Push to ghcr.io
         if: startsWith(github.ref, 'refs/tags/')
@@ -194,7 +194,7 @@ jobs:
         with:
           name: target
 
-      - name: Make github-stats-*-runner executable
+      - name: Make github-org-management-*-runner executable
         run: chmod +x ${{ env.RUNNER }}
 
       - name: Run 'collect-members-from-ldap' for CoP
@@ -312,4 +312,4 @@ jobs:
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           files: |
-            github-stats-*-runner
+            github-org-management-*-runner

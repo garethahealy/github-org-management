@@ -1,0 +1,67 @@
+// tag::picocli-generated-full-manpage[]
+// tag::picocli-generated-man-section-header[]
+:doctype: manpage
+:revnumber: 
+:manmanual: Github-org-management Manual
+:mansource: 
+:man-linkstyle: pass:[blue R < >]
+= github-org-management(1)
+
+// end::picocli-generated-man-section-header[]
+
+// tag::picocli-generated-man-section-name[]
+== Name
+
+github-org-management - GitHub helper utility
+
+// end::picocli-generated-man-section-name[]
+
+// tag::picocli-generated-man-section-synopsis[]
+== Synopsis
+
+*github-org-management* [*-hV*] [COMMAND]
+
+// end::picocli-generated-man-section-synopsis[]
+
+// tag::picocli-generated-man-section-description[]
+== Description
+
+GitHub helper utility
+
+// end::picocli-generated-man-section-description[]
+
+// tag::picocli-generated-man-section-options[]
+== Options
+
+*-h*, *--help*::
+  Show this help message and exit.
+
+*-V*, *--version*::
+  Print version information and exit.
+
+// end::picocli-generated-man-section-options[]
+
+// tag::picocli-generated-man-section-arguments[]
+// end::picocli-generated-man-section-arguments[]
+
+// tag::picocli-generated-man-section-commands[]
+== Commands
+
+xref:github-org-management-users.adoc[*users*]::
+  Users operations
+
+xref:github-org-management-help.adoc[*help*]::
+  Display help information about the specified command.
+
+xref:github-org-management-generate-completion.adoc[*generate-completion*]::
+  Generate bash/zsh completion script for github-org-management.
+
+// end::picocli-generated-man-section-commands[]
+
+// tag::picocli-generated-man-section-exit-status[]
+// end::picocli-generated-man-section-exit-status[]
+
+// tag::picocli-generated-man-section-footer[]
+// end::picocli-generated-man-section-footer[]
+
+// end::picocli-generated-full-manpage[]
