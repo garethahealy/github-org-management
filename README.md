@@ -7,6 +7,9 @@ CLI to generate stats and issues for a GitHub org.
 Both JVM and Native mode are supported.
 
 ```bash
+export KRB5CCNAME=FILE:/tmp/krb5cc_$(id -u)
+kinit gahealy@IPA.REDHAT.COM
+
 ./mvnw clean install
 ./mvnw clean install -Pnative
 ```
