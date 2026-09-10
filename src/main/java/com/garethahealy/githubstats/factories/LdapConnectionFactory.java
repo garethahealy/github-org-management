@@ -10,6 +10,9 @@ import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.message.LdapResult;
+import org.apache.directory.api.ldap.model.message.ResultCodeEnum;
+import org.apache.directory.api.ldap.model.message.SearchResultDone;
 import org.apache.directory.api.ldap.model.message.SearchScope;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.ldap.client.api.*;
@@ -81,7 +84,12 @@ public class LdapConnectionFactory {
     }
 
     private void ensureWarmedUp() {
+        String host = ldapConfig.connection();
+        int port = ldapConfig.port();
+
         try {
+            logger.infof("Trying LDAP warmup against %s:%d (uid=%s)", host, port, ldapConfig.warmupUser());
+
             try (LdapConnectionLease lease = open()) {
                 LdapConnection connection = lease.connection();
 
@@ -92,10 +100,27 @@ public class LdapConnectionFactory {
                         warmedUp.set(true);
                         break;
                     }
+
+                    if (!warmedUp.get()) {
+                        logWarmupSearchFailure(cursor, host, port);
+                    }
                 }
             }
-        } catch (IOException | LdapException e) {
-            logger.error("Failed to open connection to LDAP", e);
+        } catch (Exception | UnsatisfiedLinkError e) {
+            logger.errorf(e, "Failed to connect to LDAP at %s:%d", host, port);
+        }
+    }
+
+    private void logWarmupSearchFailure(EntryCursor cursor, String host, int port) {
+        SearchResultDone done = cursor.getSearchResultDone();
+        LdapResult result = done == null ? null : done.getLdapResult();
+
+        if (result == null || result.getResultCode() == ResultCodeEnum.SUCCESS) {
+            logger.warnf("LDAP warmup search for uid=%s at %s:%d returned no entries", ldapConfig.warmupUser(), host, port);
+        } else {
+            String diagnostic = result.getDiagnosticMessage();
+            String detail = (diagnostic == null || diagnostic.isBlank()) ? "no diagnostic" : diagnostic;
+            logger.errorf("LDAP at %s:%d rejected the warmup search: %s (%s)", host, port, result.getResultCode(), detail);
         }
     }
 
