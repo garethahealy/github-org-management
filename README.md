@@ -2,7 +2,6 @@
 
 CLI to generate stats and issues for a GitHub org.
 
-
 ## Generate keytab
 
 To connect to the Red Hat VPN, a Kerb token is required.
@@ -55,7 +54,7 @@ ldapsearch -Y GSSAPI -H ldap:///dc%3Dipa%2Cdc%3Dredhat%2Cdc%3Dcom -b cn=users,cn
 Once you've built the code, you can execute the commands, for example:
 
 ```bash
-./target/github-org-management-*-runner users collect-members-from-ldap --organization=redhat-cop --csv-output=ldap-members.csv --ldap-members-csv=ldap-members.csv --fail-if-no-vpn=true --guess=false
+target/github-org-management-*runner users collect-members-from-ldap --organization=redhat-cop --ldap-members-csv=ldap-members.csv --supplementary-csv=supplementary.csv --fail-if-no-vpn=true --validate-csv=false
 ```
 
 For a full list of commands, see: [docs](docs)
