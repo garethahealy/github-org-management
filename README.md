@@ -20,7 +20,7 @@ kinit -T FILE:$HOME/.krb5cc_gahealy -k -t ~/.kerberos.gahealy.keytab gahealy@IPA
 
 ## Build
 
-Both JVM and Native mode are supported. 
+Both JVM and Native mode are supported.
 
 ```bash
 ./mvnw clean install
