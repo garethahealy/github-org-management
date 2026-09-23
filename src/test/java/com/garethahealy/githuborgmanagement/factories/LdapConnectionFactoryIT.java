@@ -20,6 +20,10 @@ class LdapConnectionFactoryIT extends BaseRequiresLdapConnection {
     @Inject
     LdapConnectionFactory factory;
 
+    public LdapConnectionFactoryIT(LdapConnectionFactory ldapConnectionFactory) {
+        super(ldapConnectionFactory);
+    }
+
     @Test
     @EnabledIf("canConnectVpn")
     void canConnect() {

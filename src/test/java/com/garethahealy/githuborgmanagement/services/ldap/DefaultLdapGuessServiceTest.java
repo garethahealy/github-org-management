@@ -1,5 +1,6 @@
 package com.garethahealy.githuborgmanagement.services.ldap;
 
+import com.garethahealy.githuborgmanagement.factories.LdapConnectionFactory;
 import com.garethahealy.githuborgmanagement.testutils.BaseRequiresLdapConnection;
 import com.garethahealy.githuborgmanagement.testutils.OrgMemberMockData;
 import io.quarkus.test.junit.QuarkusTest;
@@ -21,6 +22,10 @@ class DefaultLdapGuessServiceTest extends BaseRequiresLdapConnection {
     @Inject
     @Named("read")
     GitHub client;
+
+    public DefaultLdapGuessServiceTest(LdapConnectionFactory ldapConnectionFactory) {
+        super(ldapConnectionFactory);
+    }
 
     @Test
     @EnabledIf("canConnectVpn")

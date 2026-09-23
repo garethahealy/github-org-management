@@ -1,5 +1,6 @@
 package com.garethahealy.githuborgmanagement.services.users;
 
+import com.garethahealy.githuborgmanagement.factories.LdapConnectionFactory;
 import com.garethahealy.githuborgmanagement.factories.LdapConnectionLease;
 import com.garethahealy.githuborgmanagement.model.users.OrgMember;
 import com.garethahealy.githuborgmanagement.services.ldap.LdapSearchService;
@@ -23,6 +24,10 @@ class OrgMemberValidationServiceIT extends BaseRequiresLdapConnection {
 
     @Inject
     OrgMemberValidationService orgMemberValidationService;
+
+    public OrgMemberValidationServiceIT(LdapConnectionFactory ldapConnectionFactory) {
+        super(ldapConnectionFactory);
+    }
 
     @Test
     @EnabledIf("canConnectVpn")
