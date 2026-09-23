@@ -2,14 +2,27 @@
 
 CLI to generate stats and issues for a GitHub org.
 
-## Build
 
-Both JVM and Native mode are supported.
+## Generate keytab
+
+To connect to the Red Hat VPN, a Kerb token is required.
 
 ```bash
-export KRB5CCNAME=FILE:/tmp/krb5cc_$(id -u)
-kinit gahealy@IPA.REDHAT.COM
+ktutil
+-> addent -password -p gahealy@IPA.REDHAT.COM -k 1 -e aes256-cts-hmac-sha1-96 -f
+-> wkt /Users/gahealy/.kerberos.gahealy.keytab
+-> quit
 
+klist -kte ~/.kerberos.gahealy.keytab
+kinit -n @IPA.REDHAT.COM -c FILE:$HOME/.krb5cc_gahealy
+kinit -T FILE:$HOME/.krb5cc_gahealy -k -t ~/.kerberos.gahealy.keytab gahealy@IPA.REDHAT.COM
+```
+
+## Build
+
+Both JVM and Native mode are supported. 
+
+```bash
 ./mvnw clean install
 ./mvnw clean install -Pnative
 ```
