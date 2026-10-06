@@ -6,11 +6,7 @@ import org.apache.directory.api.ldap.model.exception.LdapOperationException;
 import org.apache.directory.api.ldap.model.message.BindResponse;
 import org.apache.directory.api.ldap.model.message.LdapResult;
 import org.apache.directory.api.ldap.model.message.ResultCodeEnum;
-import org.apache.directory.ldap.client.api.DefaultLdapConnectionFactory;
-import org.apache.directory.ldap.client.api.LdapConnection;
-import org.apache.directory.ldap.client.api.LdapConnectionConfig;
-import org.apache.directory.ldap.client.api.LdapNetworkConnection;
-import org.apache.directory.ldap.client.api.SaslGssApiRequest;
+import org.apache.directory.ldap.client.api.*;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;

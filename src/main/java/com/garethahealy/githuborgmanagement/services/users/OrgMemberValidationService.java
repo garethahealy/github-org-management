@@ -14,7 +14,9 @@ import org.kohsuke.github.GHUser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 @ApplicationScoped
 public class OrgMemberValidationService {

@@ -1,11 +1,8 @@
 package com.garethahealy.githuborgmanagement.services.github;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Named;
-import org.jboss.logging.Logger;
 import org.kohsuke.github.GHOrganization;
-import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
