@@ -23,6 +23,7 @@ alwaysApply: false
 - Use `@QuarkusMainIntegrationTest` for CLI command tests
 - Use `@Launch` annotation to invoke commands with arguments
 - Verify exit codes and output in launch results
+- `DumpQuarkusLogOnFailure` prints `target/quarkus.log` when one of these tests fails. Passing runs stay quiet.
 
 ## Example Pattern
 
